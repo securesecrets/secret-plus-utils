@@ -40,7 +40,7 @@ use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use cw_storage_plus::Map;
+use secret_storage_plus::Map;
 
 use crate::app::{CosmosRouter, RouterQuerier};
 use crate::contracts::{gen_test_hash, Contract};
@@ -1057,7 +1057,7 @@ mod test {
 
         // Default error message from router when not found
         assert_eq!(
-            StdError::not_found("cw_multi_test::wasm::ContractData"),
+            StdError::not_found("secret_multi_test::wasm::ContractData"),
             err.downcast().unwrap()
         );
     }

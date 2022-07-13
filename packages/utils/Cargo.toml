@@ -22,5 +22,5 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.21" }
 
 [dev-dependencies]
-cw-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4" }
+secret-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4" }
 prost = "0.9"

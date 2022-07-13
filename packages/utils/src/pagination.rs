@@ -37,7 +37,7 @@ pub fn calc_range_start_string(start_after: Option<String>) -> Option<Vec<u8>> {
 mod test {
     use super::*;
     use cosmwasm_std::{testing::mock_dependencies, Order};
-    use cw_storage_plus::{Bound, Map};
+    use secret_storage_plus::{Bound, Map};
 
     pub const HOLDERS: Map<&Addr, usize> = Map::new("some_data");
     const LIMIT: usize = 30;

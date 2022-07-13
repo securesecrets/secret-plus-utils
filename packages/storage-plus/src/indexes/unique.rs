@@ -43,7 +43,7 @@ impl<'a, IK, T, PK> UniqueIndex<'a, IK, T, PK> {
     /// ## Example:
     ///
     /// ```rust
-    /// use cw_storage_plus::UniqueIndex;
+    /// use secret_storage_plus::UniqueIndex;
     ///
     /// struct Data {
     ///     pub name: String,

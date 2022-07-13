@@ -1390,7 +1390,7 @@ mod test {
         use super::*;
 
         use anyhow::{bail, Result as AnyResult};
-        use cw_storage_plus::Item;
+        use secret_storage_plus::Item;
         use serde::{Deserialize, Serialize};
 
         use crate::Executor;
@@ -2493,7 +2493,7 @@ mod test {
     // mod protobuf_wrapped_data {
     //     use super::*;
     //     use crate::test_helpers::contracts::echo::EXECUTE_REPLY_BASE_ID;
-    //     use cw_utils::parse_instantiate_response_data;
+    //     use secret_utils::parse_instantiate_response_data;
 
     //     #[test]
     //     fn instantiate_wrapped_properly() {

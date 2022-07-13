@@ -19,7 +19,7 @@ impl<'a, T> SnapshotItem<'a, T> {
     /// Example:
     ///
     /// ```rust
-    /// use cw_storage_plus::{SnapshotItem, Strategy};
+    /// use secret_storage_plus::{SnapshotItem, Strategy};
     ///
     /// SnapshotItem::<'static, u64>::new(
     ///     "every",

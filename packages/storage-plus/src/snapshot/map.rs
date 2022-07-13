@@ -25,7 +25,7 @@ impl<'a, K, T> SnapshotMap<'a, K, T> {
     /// Example:
     ///
     /// ```rust
-    /// use cw_storage_plus::{SnapshotMap, Strategy};
+    /// use secret_storage_plus::{SnapshotMap, Strategy};
     ///
     /// SnapshotMap::<&[u8], &str>::new(
     ///     "never",

@@ -2,7 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cw_storage_plus::Item;
+use secret_storage_plus::Item;
 
 pub mod contracts;
 

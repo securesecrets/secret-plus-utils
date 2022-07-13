@@ -23,8 +23,8 @@ backtrace = ["anyhow/backtrace"]
 
 [dependencies]
 nanoid = "0.4.0"
-cw-utils = { path = "../../packages/utils", version = "0.13.4" }
-cw-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4"}
+secret-utils = { path = "../../packages/utils", version = "0.13.4" }
+secret-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4"}
 cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", features = ["staking"] }
 cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 itertools = "0.10.1"

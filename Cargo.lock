@@ -364,47 +364,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-multi-test"
-version = "0.13.4"
-dependencies = [
- "anyhow",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-storage-plus",
- "cw-utils",
- "derivative",
- "itertools",
- "nanoid",
- "prost",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "cw-storage-plus"
-version = "0.13.4"
-dependencies = [
- "cosmwasm-std",
- "criterion",
- "rand",
- "schemars",
- "serde",
-]
-
-[[package]]
-name = "cw-utils"
-version = "0.13.4"
-dependencies = [
- "cosmwasm-std",
- "cw-storage-plus",
- "prost",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "der"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,6 +940,47 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "secret-multi-test"
+version = "0.13.4"
+dependencies = [
+ "anyhow",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "derivative",
+ "itertools",
+ "nanoid",
+ "prost",
+ "schemars",
+ "secret-storage-plus",
+ "secret-utils",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "secret-storage-plus"
+version = "0.13.4"
+dependencies = [
+ "cosmwasm-std",
+ "criterion",
+ "rand",
+ "schemars",
+ "serde",
+]
+
+[[package]]
+name = "secret-utils"
+version = "0.13.4"
+dependencies = [
+ "cosmwasm-std",
+ "prost",
+ "schemars",
+ "secret-storage-plus",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

@@ -26,7 +26,7 @@ impl<'a, K, T, I> IndexedSnapshotMap<'a, K, T, I> {
     /// Examples:
     ///
     /// ```rust
-    /// use cw_storage_plus::{IndexedSnapshotMap, Strategy, UniqueIndex};
+    /// use secret_storage_plus::{IndexedSnapshotMap, Strategy, UniqueIndex};
     ///
     /// #[derive(PartialEq, Debug, Clone)]
     /// struct Data {

@@ -5,7 +5,7 @@ use std::fmt;
 use cosmwasm_std::{
     to_binary, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdError,
 };
-use cw_storage_plus::Item;
+use secret_storage_plus::Item;
 
 use crate::contracts::{Contract, ContractWrapper};
 use crate::test_helpers::{EmptyMsg, COUNT};

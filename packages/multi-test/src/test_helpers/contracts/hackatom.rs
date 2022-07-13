@@ -3,7 +3,7 @@
 use cosmwasm_std::{
     to_binary, BankMsg, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdError,
 };
-use cw_storage_plus::Item;
+use secret_storage_plus::Item;
 use serde::{Deserialize, Serialize};
 
 use crate::{test_helpers::EmptyMsg, Contract, ContractWrapper};

@@ -50,7 +50,7 @@ where
     /// ## Example:
     ///
     /// ```rust
-    /// use cw_storage_plus::MultiIndex;
+    /// use secret_storage_plus::MultiIndex;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Deserialize, Serialize, Clone)]
