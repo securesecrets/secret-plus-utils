@@ -1169,7 +1169,7 @@ mod test {
         // reflect count is 1
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.clone(), &reflect::QueryMsg::Count {})
+            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &reflect::QueryMsg::Count {})
             .unwrap();
         assert_eq!(0, qres.count);
 
@@ -1231,7 +1231,7 @@ mod test {
         // reflect count updated
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr, &reflect::QueryMsg::Count {})
+            .query_wasm_smart(reflect_addr.code_hash, reflect_addr.address,  &reflect::QueryMsg::Count {})
             .unwrap();
         assert_eq!(1, qres.count);
     }
@@ -1295,7 +1295,7 @@ mod test {
         // reflect count should be updated to 1
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.clone(), &reflect::QueryMsg::Count {})
+            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &reflect::QueryMsg::Count {})
             .unwrap();
         assert_eq!(1, qres.count);
 
@@ -1326,7 +1326,7 @@ mod test {
         // failure should not update reflect count
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr, &reflect::QueryMsg::Count {})
+            .query_wasm_smart(reflect_addr.code_hash, reflect_addr.address, &reflect::QueryMsg::Count {})
             .unwrap();
         assert_eq!(1, qres.count);
     }
@@ -1354,7 +1354,7 @@ mod test {
         // count is 1
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr.clone(), &payout::QueryMsg::Count {})
+            .query_wasm_smart(payout_addr.code_hash.clone(), payout_addr.address.clone(), &payout::QueryMsg::Count {})
             .unwrap();
         assert_eq!(1, count);
 
@@ -1365,7 +1365,7 @@ mod test {
         // count is 25
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr.clone(), &payout::QueryMsg::Count {})
+            .query_wasm_smart(payout_addr.code_hash.clone(), payout_addr.address.clone(), &payout::QueryMsg::Count {})
             .unwrap();
         assert_eq!(25, count);
 
@@ -1379,7 +1379,7 @@ mod test {
 
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr, &payout::QueryMsg::Count {})
+            .query_wasm_smart(payout_addr.code_hash, payout_addr.address, &payout::QueryMsg::Count {})
             .unwrap();
         assert_eq!(49, count);
     }
@@ -1558,7 +1558,7 @@ mod test {
 
         // no reply writen beforehand
         let query = reflect::QueryMsg::Reply { id: 123 };
-        let res: StdResult<Reply> = app.wrap().query_wasm_smart(reflect_addr.clone(), &query);
+        let res: StdResult<Reply> = app.wrap().query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &query);
         res.unwrap_err();
 
         // reflect sends 7 eth, success
@@ -1592,7 +1592,7 @@ mod test {
         // ensure success was written
         let res: Reply = app
             .wrap()
-            .query_wasm_smart(reflect_addr.clone(), &query)
+            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &query)
             .unwrap();
         assert_eq!(res.id, 123);
         // validate the events written in the reply blob...should just be bank transfer
@@ -1618,7 +1618,7 @@ mod test {
 
         // ensure error was written
         let query = reflect::QueryMsg::Reply { id: 456 };
-        let res: Reply = app.wrap().query_wasm_smart(reflect_addr, &query).unwrap();
+        let res: Reply = app.wrap().query_wasm_smart(reflect_addr.code_hash, reflect_addr.address,&query).unwrap();
         assert_eq!(res.id, 456);
         assert!(res.result.is_err());
         // TODO: check error?
@@ -1821,7 +1821,7 @@ mod test {
         // check beneficiary set properly
         let state: hackatom::InstantiateMsg = app
             .wrap()
-            .query_wasm_smart(contract.clone(), &hackatom::QueryMsg::Beneficiary {})
+            .query_wasm_smart(contract.code_hash.clone(), contract.address.clone(), &hackatom::QueryMsg::Beneficiary {})
             .unwrap();
         assert_eq!(state.beneficiary, beneficiary);
 
@@ -1859,7 +1859,7 @@ mod test {
         // check beneficiary updated
         let state: hackatom::InstantiateMsg = app
             .wrap()
-            .query_wasm_smart(contract, &hackatom::QueryMsg::Beneficiary {})
+            .query_wasm_smart(contract.code_hash, contract.address, &hackatom::QueryMsg::Beneficiary {})
             .unwrap();
         assert_eq!(state.beneficiary, random);
     }

@@ -15,7 +15,7 @@ homepage = "https://cosmwasm.com"
 
 [features]
 default = []
-# iterator = ["cosmwasm-std/iterator"]
+iterator = ["cosmwasm-std/iterator"]
 
 [lib]
 # See https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
