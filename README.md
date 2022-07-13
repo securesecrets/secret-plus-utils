@@ -5,9 +5,9 @@ This repo contains some packages from [cw-plus](https://github.com/CosmWasm/cw-p
 ## Imports
 
 ```
-secret-storage-plus = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
-secret-multi-test = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
-secret-utils = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
+secret-storage-plus = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
+secret-multi-test = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
+secret-utils = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
 ```
 
 If you don't know what CosmWasm is, please check out
