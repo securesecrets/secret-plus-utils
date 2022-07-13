@@ -1,0 +1,36 @@
+[package]
+name = "cw-multi-test"
+version = "0.13.4"
+authors = [
+  "Ethan Frey <ethanfrey@users.noreply.github.com>",
+
+  # Refactored for Secret Network
+  "hydropump3 <3ki2fiay@anonaddy.me>",
+]
+edition = "2018"
+description = "Test helpers for multi-contract interactions"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-plus"
+homepage = "https://cosmwasm.com"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["staking"]
+# iterator = ["cosmwasm-std/iterator"]
+stargate = ["cosmwasm-std/stargate"]
+staking = ["cosmwasm-std/staking"]
+backtrace = ["anyhow/backtrace"]
+
+[dependencies]
+nanoid = "0.4.0"
+cw-utils = { path = "../../packages/utils", version = "0.13.4" }
+cw-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4"}
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", features = ["staking"] }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+itertools = "0.10.1"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+prost = "0.9"
+anyhow = "1"
+thiserror = "1"
+derivative = "2"

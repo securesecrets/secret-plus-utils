@@ -1,0 +1,35 @@
+[package]
+name = "cw-storage-plus"
+version = "0.13.4"
+authors = [
+  "Ethan Frey <ethanfrey@users.noreply.github.com>",
+
+  # Refactored for Secret Network
+  "hydropump3 <3ki2fiay@anonaddy.me>",
+]
+edition = "2018"
+description = "Enhanced storage engines"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-plus"
+homepage = "https://cosmwasm.com"
+
+[features]
+default = []
+# iterator = ["cosmwasm-std/iterator"]
+
+[lib]
+# See https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
+bench = false
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+criterion = { version = "0.3", features = [ "html_reports" ] }
+rand = "0.8"
+
+[[bench]]
+name = "main"
+harness = false
