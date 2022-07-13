@@ -1,14 +1,14 @@
-# CosmWasm Plus Utils (Updated for Secret Network v1)
+# Secret CosmWasm Plus Utils (For Secret Network v1)
 
 This repo contains some packages from [cw-plus](https://github.com/CosmWasm/cw-plus) that have been updated to work with the Secret Network version of Cosmwasm v1.
 
-[![CircleCI](https://circleci.com/gh/CosmWasm/cw-plus/tree/main.svg?style=shield)](https://circleci.com/gh/CosmWasm/cw-plus/tree/main)
+## Imports
 
-| Utilities       | Crates.io                                                                                                                        | Docs                                                                                  | Coverage                                                                                                                                  |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| cw-multi-test   | [![cw-multi-test on crates.io](https://img.shields.io/crates/v/cw-multi-test.svg)](https://crates.io/crates/cw-multi-test)       | [![Docs](https://docs.rs/cw-multi-test/badge.svg)](https://docs.rs/cw-multi-test)     | [![codecov](https://codecov.io/gh/CosmWasm/cw-plus/branch/main/graph/badge.svg?token=IYY72ZVS3X)](https://codecov.io/gh/CosmWasm/cw-plus) |                                                                                                                                          |
-| cw-storage-plus | [![cw-storage-plus on crates.io](https://img.shields.io/crates/v/cw-storage-plus.svg)](https://crates.io/crates/cw-storage-plus) | [![Docs](https://docs.rs/cw-storage-plus/badge.svg)](https://docs.rs/cw-storage-plus) | [![codecov](https://codecov.io/gh/CosmWasm/cw-plus/branch/main/graph/badge.svg?token=IYY72ZVS3X)](https://codecov.io/gh/CosmWasm/cw-plus) |
-| cw-utils        | [![cw-utils on crates.io](https://img.shields.io/crates/v/cw-utils.svg)](https://crates.io/crates/cw-utils)                      | [![Docs](https://docs.rs/cw-utils/badge.svg)](https://docs.rs/cw-utils)               | [![codecov](https://codecov.io/gh/CosmWasm/cw-plus/branch/main/graph/badge.svg?token=IYY72ZVS3X)](https://codecov.io/gh/CosmWasm/cw-plus) |
+```
+secret-storage-plus = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
+secret-multi-test = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
+secret-utils = { git = "https://github.com/securesecrets/cw-plus-utils", version = "0.13.4" }
+```
 
 If you don't know what CosmWasm is, please check out
 [our homepage](https://cosmwasm.com) and

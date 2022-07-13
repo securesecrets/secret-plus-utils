@@ -1,5 +1,5 @@
 [package]
-name = "cw-multi-test"
+name = "secret-multi-test"
 version = "0.13.4"
 authors = [
   "Ethan Frey <ethanfrey@users.noreply.github.com>",

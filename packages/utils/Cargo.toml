@@ -1,5 +1,5 @@
 [package]
-name = "cw-utils"
+name = "secret-utils"
 version = "0.13.4"
 authors = [
   "Ethan Frey <ethanfrey@users.noreply.github.com>",
