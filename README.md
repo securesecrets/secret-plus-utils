@@ -1,6 +1,6 @@
-# Secret CosmWasm Plus Utils (For Secret Network v1)
+# Secret Plus Utils
 
-This repo contains some packages from [cw-plus](https://github.com/CosmWasm/cw-plus) that have been updated to work with the Secret Network version of Cosmwasm v1.
+This repo contains some packages from [cw-plus](https://github.com/CosmWasm/cw-plus) that have been updated to work with the Secret Network's Cosmwasm v1.
 
 ## Imports
 
