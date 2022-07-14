@@ -1097,7 +1097,7 @@ mod test {
 
         // do one payout and see money coming in
         let res = app
-            .execute_contract(random.clone(), contract_addr.clone(), &EmptyMsg {}, &[])
+            .execute_contract(random.clone(), &contract_addr, &EmptyMsg {}, &[])
             .unwrap();
         assert_eq!(3, res.events.len());
 
@@ -1184,7 +1184,7 @@ mod test {
             messages: vec![msg],
         };
         let res = app
-            .execute_contract(Addr::unchecked("random"), reflect_addr.clone(), &msgs, &[])
+            .execute_contract(Addr::unchecked("random"), &reflect_addr, &msgs, &[])
             .unwrap();
 
         // ensure the attributes were relayed from the sub-message
@@ -1276,7 +1276,7 @@ mod test {
             messages: vec![msg],
         };
         let res = app
-            .execute_contract(random.clone(), reflect_addr.clone(), &msgs, &[])
+            .execute_contract(random.clone(), &reflect_addr, &msgs, &[])
             .unwrap();
         // no wasm events as no attributes
         assert_eq!(2, res.events.len());
@@ -1312,7 +1312,7 @@ mod test {
             messages: vec![msg, msg2],
         };
         let err = app
-            .execute_contract(random.clone(), reflect_addr.clone(), &msgs, &[])
+            .execute_contract(random.clone(), &reflect_addr, &msgs, &[])
             .unwrap_err();
         assert_eq!(
             StdError::overflow(OverflowError::new(OverflowOperation::Sub, 0, 3)),
@@ -1573,7 +1573,7 @@ mod test {
             messages: vec![msg],
         };
         let res = app
-            .execute_contract(random.clone(), reflect_addr.clone(), &msgs, &[])
+            .execute_contract(random.clone(), &reflect_addr, &msgs, &[])
             .unwrap();
 
         // expected events: execute, transfer, reply, custom wasm (set in reply)
@@ -1613,7 +1613,7 @@ mod test {
             messages: vec![msg],
         };
         let _res = app
-            .execute_contract(random, reflect_addr.clone(), &msgs, &[])
+            .execute_contract(random, &reflect_addr, &msgs, &[])
             .unwrap();
 
         // ensure error was written
@@ -1766,7 +1766,7 @@ mod test {
 
         app.execute_contract(
             owner.clone(),
-            contract.clone(),
+            &contract,
             &EmptyMsg {},
             &coins(20, "btc"),
         )
@@ -1926,7 +1926,7 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: Some("Data".to_owned()),
                         ..echo::Message::default()
@@ -1952,11 +1952,11 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("First".to_owned()),
                         sub_msg: vec![make_echo_submsg(
-                            contract,
+                            contract.clone(),
                             "Second",
                             vec![],
                             EXECUTE_REPLY_BASE_ID,
@@ -1984,10 +1984,10 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("First".to_owned()),
-                        sub_msg: vec![make_echo_submsg_no_reply(contract, "Second", vec![])],
+                        sub_msg: vec![make_echo_submsg_no_reply(contract.clone(), "Second", vec![])],
                         ..echo::Message::default()
                     },
                     &[],
@@ -2011,10 +2011,10 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("First".to_owned()),
-                        sub_msg: vec![make_echo_submsg(contract, None, vec![], 1)],
+                        sub_msg: vec![make_echo_submsg(contract.clone(), None, vec![], 1)],
                         ..echo::Message::default()
                     },
                     &[],
@@ -2038,10 +2038,10 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         sub_msg: vec![make_echo_submsg(
-                            contract,
+                            contract.clone(),
                             "Second",
                             vec![],
                             EXECUTE_REPLY_BASE_ID,
@@ -2105,7 +2105,7 @@ mod test {
             };
 
             let res = app
-                .execute_contract(owner, reflect_addr.clone(), &reflect_msg, &[])
+                .execute_contract(owner, &reflect_addr, &reflect_msg, &[])
                 .unwrap();
 
             // ensure data is empty
@@ -2135,7 +2135,7 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("Orig".to_owned()),
                         sub_msg: vec![
@@ -2157,7 +2157,7 @@ mod test {
                                 vec![],
                                 EXECUTE_REPLY_BASE_ID + 3,
                             ),
-                            make_echo_submsg(contract, None, vec![], EXECUTE_REPLY_BASE_ID + 4),
+                            make_echo_submsg(contract.clone(), None, vec![], EXECUTE_REPLY_BASE_ID + 4),
                         ],
                         ..echo::Message::default()
                     },
@@ -2182,14 +2182,14 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("Orig".to_owned()),
                         sub_msg: vec![
                             make_echo_submsg_no_reply(contract.clone(), None, vec![]),
                             make_echo_submsg_no_reply(contract.clone(), "First", vec![]),
                             make_echo_submsg_no_reply(contract.clone(), "Second", vec![]),
-                            make_echo_submsg_no_reply(contract, None, vec![]),
+                            make_echo_submsg_no_reply(contract.clone(), None, vec![]),
                         ],
                         ..echo::Message::default()
                     },
@@ -2214,7 +2214,7 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         sub_msg: vec![
                             make_echo_submsg(
@@ -2236,7 +2236,7 @@ mod test {
                                 vec![],
                                 EXECUTE_REPLY_BASE_ID + 3,
                             ),
-                            make_echo_submsg_no_reply(contract, "Lost", vec![]),
+                            make_echo_submsg_no_reply(contract.clone(), "Lost", vec![]),
                         ],
                         ..echo::Message::default()
                     },
@@ -2261,7 +2261,7 @@ mod test {
             let response = app
                 .execute_contract(
                     owner,
-                    contract.clone(),
+                    &contract,
                     &echo::Message {
                         data: Some("Orig".to_owned()),
                         sub_msg: vec![make_echo_submsg(
@@ -2274,7 +2274,7 @@ mod test {
                                     contract.clone(),
                                     "Second",
                                     vec![make_echo_submsg(
-                                        contract,
+                                        contract.clone(),
                                         None,
                                         vec![],
                                         EXECUTE_REPLY_BASE_ID + 4,
@@ -2312,7 +2312,7 @@ mod test {
             let err = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: None,
                         attributes: vec![
@@ -2342,7 +2342,7 @@ mod test {
             let err = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: None,
                         attributes: vec![
@@ -2372,7 +2372,7 @@ mod test {
             let err = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: None,
                         events: vec![Event::new("event")
@@ -2401,7 +2401,7 @@ mod test {
             let err = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: None,
                         events: vec![Event::new("event")
@@ -2430,7 +2430,7 @@ mod test {
             let err = app
                 .execute_contract(
                     owner,
-                    contract,
+                    &contract,
                     &echo::Message::<Empty> {
                         data: None,
                         events: vec![Event::new(" e "), Event::new("event")],
@@ -2469,7 +2469,7 @@ mod test {
 
             app.execute_contract(
                 sender,
-                contract,
+                &contract,
                 &echo::Message {
                     sub_msg: vec![SubMsg::new(CosmosMsg::Custom(CustomMsg::SetAge {
                         age: 20,
@@ -2678,7 +2678,7 @@ mod test {
 
             // execute should error
             let err = app
-                .execute_contract(Addr::unchecked("random"), contract_addr, &msg, &[])
+                .execute_contract(Addr::unchecked("random"), &contract_addr, &msg, &[])
                 .unwrap_err();
 
             // we should be able to retrieve the original error by downcasting
@@ -2719,7 +2719,7 @@ mod test {
                 funds: vec![],
             };
             let err = app
-                .execute_contract(Addr::unchecked("random"), caller_addr, &msg, &[])
+                .execute_contract(Addr::unchecked("random"), &caller_addr, &msg, &[])
                 .unwrap_err();
 
             // we can downcast to get the original error
@@ -2776,7 +2776,7 @@ mod test {
                 code_hash: caller_addr2.code_hash,
             };
             let err = app
-                .execute_contract(Addr::unchecked("random"), caller_addr1, &msg, &[])
+                .execute_contract(Addr::unchecked("random"), &caller_addr1, &msg, &[])
                 .unwrap_err();
 
             // uncomment to have the test fail and see how the error stringifies

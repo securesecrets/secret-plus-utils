@@ -106,14 +106,14 @@ where
     fn execute_contract<T: Serialize + std::fmt::Debug>(
         &mut self,
         sender: Addr,
-        contract_info: ContractInfo,
+        contract_info: &ContractInfo,
         msg: &T,
         send_funds: &[Coin],
     ) -> AnyResult<AppResponse> {
         let binary_msg = to_binary(msg)?;
         let wrapped_msg = WasmMsg::Execute {
-            contract_addr: contract_info.address.into_string(),
-            code_hash: contract_info.code_hash,
+            contract_addr: contract_info.address.clone().into_string(),
+            code_hash: contract_info.code_hash.clone(),
             msg: binary_msg,
             funds: send_funds.to_vec(),
         };
