@@ -266,6 +266,23 @@ impl<ExecC, QueryC> WasmKeeper<ExecC, QueryC> {
         Box::new(storage)
     }
 
+    // fails RUNTIME if you try to write. please don't
+    pub fn get_storage<'a, F>(
+        &self,
+        storage: &'a dyn Storage,
+        address: &Addr,
+        borrow: F,
+    ) -> AnyResult<()>
+    where F: FnOnce(&dyn Storage)
+    {
+        // We double-namespace this, once from global storage -> wasm_storage
+        // then from wasm_storage -> the contracts subspace
+        let namespace = self.contract_namespace(address);
+        let storage = ReadonlyPrefixedStorage::multilevel(storage, &[NAMESPACE_WASM, &namespace]);
+        borrow(&storage);
+        return Ok(())
+    }
+
     fn verify_attributes(attributes: &[Attribute]) -> AnyResult<()> {
         for attr in attributes {
             let key = attr.key.trim();

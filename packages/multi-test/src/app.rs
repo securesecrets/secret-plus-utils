@@ -574,6 +574,16 @@ where
         self.read_module(|router, _, storage| router.wasm.load_contract(storage, address))
     }
 
+    /// Lets you pass a function on a readonly version of the contract storage at address
+    pub fn deps<F>(&self, address: &Addr, borrow: F) -> AnyResult<()>
+    where
+        F: FnOnce(&dyn Storage)
+    {
+        self.read_module(|router, _, storage| {
+            router.wasm.get_storage(storage, address, borrow)
+        })
+    }
+
     // This gets a raw state dump of all key-values held by a given contract
     // Commented out because Record is not part of secret cosmwasm v1
     // pub fn dump_wasm_raw(&self, address: &Addr) -> Vec<Record> {
