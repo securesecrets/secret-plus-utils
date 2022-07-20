@@ -1,9 +1,9 @@
 use cosmwasm_std::{
     Decimal, DistributionMsg, Empty, StakingMsg, StakingQuery,
-    Validator, FullDelegation, 
+    Validator, FullDelegation,
     Querier, Storage, Binary, BlockInfo, Api, Addr,
     to_binary, AllValidatorsResponse, ValidatorResponse,
-    BankMsg, BankQuery, BondedDenomResponse,
+    BankMsg, BankQuery, BondedDenomResponse, CustomQuery,
     //Delegation, Coin,
 };
 use anyhow::{bail, Result as AnyResult};
@@ -73,7 +73,7 @@ impl Module for StakingKeeper {
     type QueryT = StakingQuery;
     type SudoT = StakingSudo;
 
-    fn execute<ExecC, QueryC>(
+    fn execute<ExecC, QueryC: CustomQuery>(
         &self,
         api: &dyn Api,
         storage: &mut dyn Storage,
@@ -94,8 +94,8 @@ impl Module for StakingKeeper {
                 let mut delegations = DELEGATIONS.load(storage)?;
                 if let Some(i) = delegations
                     .iter()
-                    .position(|d| d.delegator == sender && 
-                              d.validator.clone() == validator && 
+                    .position(|d| d.delegator == sender &&
+                              d.validator.clone() == validator &&
                               d.amount.denom == amount.clone().denom) {
                         delegations[i].amount.amount += amount.clone().amount;
                     }
@@ -124,7 +124,7 @@ impl Module for StakingKeeper {
         }
     }
 
-    fn sudo<ExecC, QueryC>(
+    fn sudo<ExecC, QueryC: CustomQuery>(
         &self,
         api: &dyn Api,
         storage: &mut dyn Storage,
