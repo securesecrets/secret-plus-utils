@@ -17,7 +17,7 @@ use crate::bank::{Bank, BankKeeper, BankSudo};
 use crate::contracts::{gen_test_hash, Contract, ContractInstantiationInfo};
 use crate::executor::{AppResponse, Executor};
 use crate::module::{FailingModule, Module};
-use crate::staking::{Distribution, FailingDistribution, StakingKeeper, Staking, StakingSudo};
+use crate::staking::{Distribution, DistributionKeeper, StakingKeeper, Staking, StakingSudo};
 use crate::transactions::transactional;
 use crate::wasm::{ContractData, Wasm, WasmKeeper, WasmSudo};
 
@@ -46,7 +46,7 @@ pub struct App<
     Custom = FailingModule<Empty, Empty, Empty>,
     Wasm = WasmKeeper<Empty, Empty>,
     Staking = StakingKeeper,
-    Distr = FailingDistribution,
+    Distr = DistributionKeeper,
 > {
     router: Router<Bank, Custom, Wasm, Staking, Distr>,
     api: Api,
@@ -77,7 +77,7 @@ impl BasicApp {
                 FailingModule<Empty, Empty, Empty>,
                 WasmKeeper<Empty, Empty>,
                 StakingKeeper,
-                FailingDistribution,
+                DistributionKeeper,
             >,
             &dyn Api,
             &mut dyn Storage,
@@ -99,7 +99,7 @@ where
             FailingModule<ExecC, QueryC, Empty>,
             WasmKeeper<ExecC, QueryC>,
             StakingKeeper,
-            FailingDistribution,
+            DistributionKeeper,
         >,
         &dyn Api,
         &mut dyn Storage,
@@ -161,7 +161,7 @@ pub type BasicAppBuilder<ExecC, QueryC> = AppBuilder<
     FailingModule<ExecC, QueryC, Empty>,
     WasmKeeper<ExecC, QueryC>,
     StakingKeeper,
-    FailingDistribution,
+    DistributionKeeper,
 >;
 
 /// Utility to build App in stages. If particular items wont be set, defaults would be used
@@ -184,7 +184,7 @@ impl Default
         FailingModule<Empty, Empty, Empty>,
         WasmKeeper<Empty, Empty>,
         StakingKeeper,
-        FailingDistribution,
+        DistributionKeeper,
     >
 {
     fn default() -> Self {
@@ -200,7 +200,7 @@ impl
         FailingModule<Empty, Empty, Empty>,
         WasmKeeper<Empty, Empty>,
         StakingKeeper,
-        FailingDistribution,
+        DistributionKeeper,
     >
 {
     /// Creates builder with default components working with empty exec and query messages.
@@ -213,7 +213,7 @@ impl
             wasm: WasmKeeper::new(),
             custom: FailingModule::new(),
             staking: StakingKeeper::new(),
-            distribution: FailingDistribution::new(),
+            distribution: DistributionKeeper::new(),
         }
     }
 }
@@ -226,7 +226,7 @@ impl<ExecC, QueryC>
         FailingModule<ExecC, QueryC, Empty>,
         WasmKeeper<ExecC, QueryC>,
         StakingKeeper,
-        FailingDistribution,
+        DistributionKeeper,
     >
 where
     ExecC: Debug + Clone + PartialEq + JsonSchema + DeserializeOwned + 'static,
@@ -243,7 +243,7 @@ where
             wasm: WasmKeeper::new(),
             custom: FailingModule::new(),
             staking: StakingKeeper::new(),
-            distribution: FailingDistribution::new(),
+            distribution: DistributionKeeper::new(),
         }
     }
 }

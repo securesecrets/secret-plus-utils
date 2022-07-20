@@ -113,6 +113,25 @@ impl Module for StakingKeeper {
                 Ok(AppResponse { events: vec![], data: None })
             }
             StakingMsg::Undelegate { validator, amount } => {
+                let send = BankMsg::Send {
+                    to_address: sender.to_string().clone(),
+                    amount: vec![amount.clone()],
+                };
+                
+                router.execute(api, storage, block, api.addr_validate(&validator.clone())?, send.into())?;
+
+                let mut delegations = DELEGATIONS.load(storage)?;
+                if let Some(i) = delegations
+                    .iter()
+                    .position(|d| d.delegator == sender && 
+                              d.validator.clone() == validator && 
+                              d.amount.denom == amount.clone().denom) {
+                        delegations[i].amount.amount -= amount.clone().amount;
+                    }
+                else {
+                    bail!("Insufficient delegation to undelegate");
+                }
+                DELEGATIONS.save(storage, &delegations)?;
                 Ok(AppResponse { events: vec![], data: None })
             }
             /*
@@ -202,12 +221,93 @@ impl Module for StakingKeeper {
     }
 }
 
-pub type FailingStaking = FailingModule<StakingMsg, StakingQuery, StakingSudo>;
-
-impl Staking for FailingStaking {}
+/*
+#[derive(Clone, std::fmt::Debug, PartialEq, JsonSchema)]
+pub enum DistributionSudo { }
+*/
 
 pub trait Distribution: Module<ExecT = DistributionMsg, QueryT = Empty, SudoT = Empty> {}
 
-pub type FailingDistribution = FailingModule<DistributionMsg, Empty, Empty>;
+#[derive(Default)]
+pub struct DistributionKeeper {}
 
-impl Distribution for FailingDistribution {}
+impl DistributionKeeper {
+    pub fn new() -> Self {
+        DistributionKeeper {}
+    }
+}
+
+impl Distribution for DistributionKeeper {}
+
+impl Module for DistributionKeeper {
+    type ExecT = DistributionMsg;
+    type QueryT = Empty;
+    type SudoT = Empty;
+
+    fn execute<ExecC, QueryC>(
+        &self,
+        api: &dyn Api,
+        storage: &mut dyn Storage,
+        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        block: &BlockInfo,
+        sender: Addr,
+        msg: DistributionMsg,
+    ) -> AnyResult<AppResponse> {
+        match msg {
+            DistributionMsg::WithdrawDelegatorReward { validator } => {
+                /*
+                let send = BankMsg::Send {
+                    to_address: validator.clone(),
+                    amount: vec![amount.clone()],
+                };
+                router.execute(api, storage, block, sender.clone(), send.into())?;
+
+                let mut delegations = DELEGATIONS.load(storage)?;
+                if let Some(i) = delegations
+                    .iter()
+                    .position(|d| d.delegator == sender && 
+                              d.validator.clone() == validator && 
+                              d.amount.denom == amount.clone().denom) {
+                        delegations[i].amount.amount += amount.clone().amount;
+                    }
+                else {
+                    delegations.push(FullDelegation {
+                        delegator: sender,
+                        validator: validator.clone(),
+                        amount: amount.clone(),
+                        can_redelegate: amount.clone(),
+                        accumulated_rewards: vec![],
+                    });
+                }
+                DELEGATIONS.save(storage, &delegations)?;
+                */
+                bail!("WithdrawDelegatorReward Not Implemented");
+
+                Ok(AppResponse { events: vec![], data: None })
+            }
+            m => bail!("Unsupported distribution message: {:?}", m),
+        }
+    }
+
+    fn sudo<ExecC, QueryC>(
+        &self,
+        api: &dyn Api,
+        storage: &mut dyn Storage,
+        _router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        _block: &BlockInfo,
+        msg: Empty,
+    ) -> AnyResult<AppResponse> {
+        bail!("Unsupported distribution sudo: {:?}", msg);
+    }
+
+    fn query(
+        &self,
+        api: &dyn Api,
+        storage: &dyn Storage,
+        _querier: &dyn Querier,
+        _block: &BlockInfo,
+        request: Empty,
+    ) -> AnyResult<Binary> {
+        bail!("Unsupported distribution query: {:?}", request);
+    }
+}
