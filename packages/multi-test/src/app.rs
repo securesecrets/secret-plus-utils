@@ -760,7 +760,7 @@ impl From<StakingSudo> for SudoMsg {
 
 pub trait CosmosRouter {
     type ExecC;
-    type QueryC: CustomQuery;
+    type QueryC;
 
     fn execute(
         &self,

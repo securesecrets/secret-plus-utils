@@ -89,7 +89,7 @@ impl Module for StakingKeeper {
                     to_address: validator.clone(),
                     amount: vec![amount.clone()],
                 };
-                //router.execute(api, storage, block, sender, send.into())?;
+                router.execute(api, storage, block, sender.clone(), send.into())?;
 
                 let mut delegations = DELEGATIONS.load(storage)?;
                 if let Some(i) = delegations
@@ -115,9 +115,11 @@ impl Module for StakingKeeper {
             StakingMsg::Undelegate { validator, amount } => {
                 Ok(AppResponse { events: vec![], data: None })
             }
+            /*
             StakingMsg::Redelegate { src_validator, dst_validator, amount } => {
                 Ok(AppResponse { events: vec![], data: None })
             }
+            */
             m => bail!("Unsupported staking message: {:?}", m),
         }
     }
