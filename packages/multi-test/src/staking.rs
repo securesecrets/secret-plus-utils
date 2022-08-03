@@ -6,7 +6,7 @@ use cosmwasm_std::{
     BankMsg, BankQuery, BondedDenomResponse, CustomQuery,
     Coin,
 };
-use anyhow::{bail, Result as AnyResult};
+use anyhow::{bail, anyhow, Result as AnyResult, Error};
 use schemars::JsonSchema;
 use secret_storage_plus::{Item};
 
@@ -15,6 +15,7 @@ use crate::{
     executor::AppResponse,
     module::FailingModule,
     Module,
+    bank::BankSudo,
 };
 
 const VALIDATORS: Item<Vec<String>> = Item::new("validators");
@@ -46,11 +47,22 @@ impl StakingKeeper {
         validators
     }
 
-    pub fn add_rewards(amount: Coin, storage: &mut dyn Storage) -> Vec<FullDelegation> {
+    // adds 'amount' to 'accumulated_rewards' for every delegator/validator pair
+    pub fn add_rewards<ExecC, QueryC: CustomQuery>(
+        &self,
+        amount: Coin, 
+        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        api: &dyn Api,
+        storage: &mut dyn Storage,
+        block: &BlockInfo,
+    ) -> Vec<FullDelegation> {
+
         let mut delegations = DELEGATIONS.load(storage).unwrap();
 
         for i in 0..delegations.len() {
-            if let Some(mut coin) = delegations[i].accumulated_rewards.clone()
+            if let Some(mut coin) = delegations[i]
+                .accumulated_rewards
+                .clone()
                 .into_iter()
                 .find(|ar| ar.denom == amount.denom.clone()) {
                     coin.amount += amount.amount.clone();
@@ -59,6 +71,12 @@ impl StakingKeeper {
             else {
                 delegations[i].accumulated_rewards.push(amount.clone());
             }
+
+            let mint = BankSudo::Mint {
+                to_address: delegations[i].validator.clone(),
+                amount: vec![amount.clone()],
+            };
+            router.sudo(api, storage, block, mint.into()).unwrap();
         }
         DELEGATIONS.save(storage, &delegations).unwrap();
         delegations
@@ -84,13 +102,18 @@ impl Module for StakingKeeper {
 
         match msg {
             StakingMsg::Delegate { validator, amount } => {
-                let send = BankMsg::Send {
-                    to_address: validator.clone(),
-                    amount: vec![amount.clone()],
-                };
-                router.execute(api, storage, block, sender.clone(), send.into())?;
+
+                router.execute(
+                    api, storage, block, 
+                    sender.clone(), 
+                    BankMsg::Send {
+                        to_address: validator.clone(),
+                        amount: vec![amount.clone()],
+                    }.into(),
+                )?;
 
                 let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
+
                 if let Some(i) = delegations
                     .iter()
                     .position(|d| d.delegator == sender &&
@@ -112,12 +135,8 @@ impl Module for StakingKeeper {
                 Ok(AppResponse { events: vec![], data: None })
             }
             StakingMsg::Undelegate { validator, amount } => {
-                let send = BankMsg::Send {
-                    to_address: sender.to_string().clone(),
-                    amount: vec![amount.clone()],
-                };
-                
-                router.execute(api, storage, block, api.addr_validate(&validator.clone())?, send.into())?;
+
+                let mut send_coins = vec![];
 
                 let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
                 if let Some(i) = delegations
@@ -125,11 +144,25 @@ impl Module for StakingKeeper {
                     .position(|d| d.delegator == sender && 
                               d.validator.clone() == validator && 
                               d.amount.denom == amount.clone().denom) {
-                        delegations[i].amount.amount -= amount.clone().amount;
+                        delegations[i].amount.amount -= amount.amount.clone();
+                        send_coins.push(amount.clone());
+                        send_coins.append(&mut delegations[i].accumulated_rewards);
+                        delegations[i].accumulated_rewards = vec![];
+
+                        if delegations[i].amount.amount.is_zero() {
+                            delegations.remove(i);
+                        }
                     }
                 else {
                     bail!("Insufficient delegation to undelegate");
                 }
+
+                let send = BankMsg::Send {
+                    to_address: sender.to_string().clone(),
+                    amount: send_coins,
+                };
+                
+                router.execute(api, storage, block, api.addr_validate(&validator.clone())?, send.into())?;
                 DELEGATIONS.save(storage, &delegations)?;
                 Ok(AppResponse { events: vec![], data: None })
             }
@@ -185,7 +218,7 @@ impl Module for StakingKeeper {
                     .into_iter()
                     .find(|d| d.delegator == delegator && d.validator == validator) {
                         Some(d) => Ok(to_binary(&d)?),
-                        None => bail!("failed to find delegation")
+                        None => Err(anyhow!("missing delegator")),
                 }
             }
             StakingQuery::AllValidators {} => {
@@ -343,9 +376,9 @@ mod test {
     }
 
     #[test]
-    fn delegate() {
+    fn staking() {
         let api = MockApi::default();
-        let mut store = MockStorage::new();
+        let mut storage = MockStorage::new();
         let block = mock_env().block;
         let querier: MockQuerier<Empty> = MockQuerier::new(&[]);
 
@@ -356,16 +389,28 @@ mod test {
             amount: Uint128::new(100),
             denom: "eth".into()
         };
+        let rewards = Coin { 
+            amount: Uint128::new(10),
+            denom: "eth".into()
+        };
         //let norm = vec![coin(20, "btc"), coin(100, "eth")];
         let bank = BankKeeper::new();
         let staking = StakingKeeper::new();
         let router = mock_router();
 
-        bank.init_balance(&mut store, &owner, vec![funds.clone()]).unwrap();
+        let mut expected_delegation = FullDelegation {
+            delegator: owner.clone(),
+            validator: validator.to_string(),
+            amount: funds.clone(),
+            can_redelegate: funds.clone(),
+            accumulated_rewards: vec![],
+        };
+
+        bank.init_balance(&mut storage, &owner, vec![funds.clone()]).unwrap();
 
         staking.execute(
             &api,
-            &mut store,
+            &mut storage,
             &router,
             &block,
             owner.clone(),
@@ -377,7 +422,7 @@ mod test {
 
         let delegation: FullDelegation = from_binary(&staking.query(
             &api,
-            &store,
+            &storage,
             &querier,
             &block,
             StakingQuery::Delegation {
@@ -386,218 +431,51 @@ mod test {
             },
         ).unwrap()).unwrap();
 
-        assert_eq!(delegation.delegator, owner);
-        assert_eq!(delegation.validator, validator);
-        assert_eq!(delegation.amount, funds);
-        /*
-        let res: AllBalanceResponse = from_slice(&raw).unwrap();
-        assert_eq!(res.amount, norm);
+        assert_eq!(delegation, expected_delegation);
 
-        let req = BankQuery::AllBalances {
-            address: rcpt.clone().into(),
-        };
-        let raw = bank.query(&api, &store, &querier, &block, req).unwrap();
-        let res: AllBalanceResponse = from_slice(&raw).unwrap();
-        assert_eq!(res.amount, vec![]);
-
-        let req = BankQuery::Balance {
-            address: owner.clone().into(),
-            denom: "eth".into(),
-        };
-        let raw = bank.query(&api, &store, &querier, &block, req).unwrap();
-        let res: BalanceResponse = from_slice(&raw).unwrap();
-        assert_eq!(res.amount, coin(100, "eth"));
-
-        let req = BankQuery::Balance {
-            address: owner.into(),
-            denom: "foobar".into(),
-        };
-        let raw = bank.query(&api, &store, &querier, &block, req).unwrap();
-        let res: BalanceResponse = from_slice(&raw).unwrap();
-        assert_eq!(res.amount, coin(0, "foobar"));
-
-        let req = BankQuery::Balance {
-            address: rcpt.into(),
-            denom: "eth".into(),
-        };
-        let raw = bank.query(&api, &store, &querier, &block, req).unwrap();
-        let res: BalanceResponse = from_slice(&raw).unwrap();
-        assert_eq!(res.amount, coin(0, "eth"));
-        */
-    }
-
-    /*
-    #[test]
-    fn send_coins() {
-        let api = MockApi::default();
-        let mut store = MockStorage::new();
-        let block = mock_env().block;
-        let router = MockRouter::default();
-
-        let owner = Addr::unchecked("owner");
-        let rcpt = Addr::unchecked("receiver");
-        let init_funds = vec![coin(20, "btc"), coin(100, "eth")];
-        let rcpt_funds = vec![coin(5, "btc")];
-
-        // set money
-        let bank = BankKeeper::new();
-        bank.init_balance(&mut store, &owner, init_funds).unwrap();
-        bank.init_balance(&mut store, &rcpt, rcpt_funds).unwrap();
-
-        // send both tokens
-        let to_send = vec![coin(30, "eth"), coin(5, "btc")];
-        let msg = BankMsg::Send {
-            to_address: rcpt.clone().into(),
-            amount: to_send,
-        };
-        bank.execute(
+        staking.add_rewards(
+            rewards.clone(),
+            &router,
             &api,
-            &mut store,
+            &mut storage,
+            &block
+        );
+        let delegation: FullDelegation = from_binary(&staking.query(
+            &api,
+            &storage,
+            &querier,
+            &block,
+            StakingQuery::Delegation {
+                delegator: owner.to_string(),
+                validator: validator.to_string(),
+            },
+        ).unwrap()).unwrap();
+        expected_delegation.accumulated_rewards.push(rewards.clone());
+        assert_eq!(delegation, expected_delegation);
+
+        staking.execute(
+            &api,
+            &mut storage,
             &router,
             &block,
             owner.clone(),
-            msg.clone(),
-        )
-        .unwrap();
-        let rich = query_balance(&bank, &api, &store, &owner);
-        assert_eq!(vec![coin(15, "btc"), coin(70, "eth")], rich);
-        let poor = query_balance(&bank, &api, &store, &rcpt);
-        assert_eq!(vec![coin(10, "btc"), coin(30, "eth")], poor);
+            StakingMsg::Undelegate {
+                validator: validator.clone().into(), 
+                amount: funds.clone(),
+            },
+        ).unwrap();
 
-        // can send from any account with funds
-        bank.execute(&api, &mut store, &router, &block, rcpt.clone(), msg)
-            .unwrap();
-
-        // cannot send too much
-        let msg = BankMsg::Send {
-            to_address: rcpt.into(),
-            amount: coins(20, "btc"),
-        };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap_err();
-
-        let rich = query_balance(&bank, &api, &store, &owner);
-        assert_eq!(vec![coin(15, "btc"), coin(70, "eth")], rich);
+        let delegation: FullDelegation = from_binary(&staking.query(
+            &api,
+            &storage,
+            &querier,
+            &block,
+            StakingQuery::Delegation {
+                delegator: owner.to_string(),
+                validator: validator.to_string(),
+            },
+        ).unwrap()).unwrap();
+        //expected_delegation.amount.push(rewards.clone());
+        assert_eq!(delegation, expected_delegation);
     }
-
-    #[test]
-    fn burn_coins() {
-        let api = MockApi::default();
-        let mut store = MockStorage::new();
-        let block = mock_env().block;
-        let router = MockRouter::default();
-
-        let owner = Addr::unchecked("owner");
-        let rcpt = Addr::unchecked("recipient");
-        let init_funds = vec![coin(20, "btc"), coin(100, "eth")];
-
-        // set money
-        let bank = BankKeeper::new();
-        bank.init_balance(&mut store, &owner, init_funds).unwrap();
-
-        // burn both tokens
-        let to_burn = vec![coin(30, "eth"), coin(5, "btc")];
-        let msg = BankMsg::Burn { amount: to_burn };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap();
-        let rich = query_balance(&bank, &api, &store, &owner);
-        assert_eq!(vec![coin(15, "btc"), coin(70, "eth")], rich);
-
-        // cannot burn too much
-        let msg = BankMsg::Burn {
-            amount: coins(20, "btc"),
-        };
-        let err = bank
-            .execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap_err();
-        assert!(matches!(err.downcast().unwrap(), StdError::Overflow { .. }));
-
-        let rich = query_balance(&bank, &api, &store, &owner);
-        assert_eq!(vec![coin(15, "btc"), coin(70, "eth")], rich);
-
-        // cannot burn from empty account
-        let msg = BankMsg::Burn {
-            amount: coins(1, "btc"),
-        };
-        let err = bank
-            .execute(&api, &mut store, &router, &block, rcpt, msg)
-            .unwrap_err();
-        assert!(matches!(err.downcast().unwrap(), StdError::Overflow { .. }));
-    }
-
-    #[test]
-    fn fail_on_zero_values() {
-        let api = MockApi::default();
-        let mut store = MockStorage::new();
-        let block = mock_env().block;
-        let router = MockRouter::default();
-
-        let owner = Addr::unchecked("owner");
-        let rcpt = Addr::unchecked("recipient");
-        let init_funds = vec![coin(5000, "atom"), coin(100, "eth")];
-
-        // set money
-        let bank = BankKeeper::new();
-        bank.init_balance(&mut store, &owner, init_funds).unwrap();
-
-        // can send normal amounts
-        let msg = BankMsg::Send {
-            to_address: rcpt.to_string(),
-            amount: coins(100, "atom"),
-        };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap();
-
-        // fails send on no coins
-        let msg = BankMsg::Send {
-            to_address: rcpt.to_string(),
-            amount: vec![],
-        };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap_err();
-
-        // fails send on 0 coins
-        let msg = BankMsg::Send {
-            to_address: rcpt.to_string(),
-            amount: coins(0, "atom"),
-        };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap_err();
-
-        // fails burn on no coins
-        let msg = BankMsg::Burn { amount: vec![] };
-        bank.execute(&api, &mut store, &router, &block, owner.clone(), msg)
-            .unwrap_err();
-
-        // fails burn on 0 coins
-        let msg = BankMsg::Burn {
-            amount: coins(0, "atom"),
-        };
-        bank.execute(&api, &mut store, &router, &block, owner, msg)
-            .unwrap_err();
-
-        // can mint via sudo
-        let msg = BankSudo::Mint {
-            to_address: rcpt.to_string(),
-            amount: coins(4321, "atom"),
-        };
-        bank.sudo(&api, &mut store, &router, &block, msg).unwrap();
-
-        // mint fails with 0 tokens
-        let msg = BankSudo::Mint {
-            to_address: rcpt.to_string(),
-            amount: coins(0, "atom"),
-        };
-        bank.sudo(&api, &mut store, &router, &block, msg)
-            .unwrap_err();
-
-        // mint fails with no tokens
-        let msg = BankSudo::Mint {
-            to_address: rcpt.to_string(),
-            amount: vec![],
-        };
-        bank.sudo(&api, &mut store, &router, &block, msg)
-            .unwrap_err();
-    }
-    */
 }
