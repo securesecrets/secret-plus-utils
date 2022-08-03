@@ -61,7 +61,7 @@ jobs:
 
       - name: Collect coverage data
         run: cargo llvm-cov nextest --lcov --output-path lcov.info
-      # - name: Upload coverage data to codecov
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     files: lcov.info
+      - name: Upload coverage data to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
