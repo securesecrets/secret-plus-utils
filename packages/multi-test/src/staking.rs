@@ -77,8 +77,8 @@ impl Module for StakingKeeper {
                 println!("Delegating {}", amount);
 
                 router.execute(
-                    api, storage, block, 
-                    sender.clone(), 
+                    api, storage, block,
+                    sender.clone(),
                     BankMsg::Send {
                         to_address: validator.clone(),
                         amount: vec![amount.clone()],
@@ -117,13 +117,13 @@ impl Module for StakingKeeper {
 
                 let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
                 if let Some(i) = delegations.iter()
-                    .position(|d| d.delegator == sender && 
-                              d.validator.clone() == validator && 
-                              d.amount.denom == amount.denom.clone()) 
+                    .position(|d| d.delegator == sender &&
+                              d.validator.clone() == validator &&
+                              d.amount.denom == amount.denom.clone())
                     {
                         if !delegations[i].accumulated_rewards.is_empty() {
                             router.sudo(
-                                api, storage, block, 
+                                api, storage, block,
                                 BankSudo::Mint {
                                     to_address: sender.to_string(),
                                     amount: delegations[i].accumulated_rewards.clone(),
@@ -189,7 +189,7 @@ impl Module for StakingKeeper {
 
                 for i in 0..delegations.len() {
                     router.sudo(
-                        api, storage, block, 
+                        api, storage, block,
                         BankSudo::Mint {
                             to_address: delegations[i].validator.to_string(),
                             amount: vec![amount.clone()],
@@ -215,8 +215,8 @@ impl Module for StakingKeeper {
                 for (validator, user, coins) in UNDELEGATIONS.load(storage).unwrap_or(vec![]) {
                     //router.bank.send(storage, validator, user, coins)?;
                     router.execute(
-                        api, storage, block, 
-                        validator, 
+                        api, storage, block,
+                        validator,
                         BankMsg::Send {
                             to_address: user.to_string().clone(),
                             amount: coins,
@@ -249,7 +249,7 @@ impl Module for StakingKeeper {
                     .unwrap_or(vec![])
                     .into_iter()
                     .filter(|d| d.delegator.to_string() == delegator)
-                    .map(|d| Delegation { 
+                    .map(|d| Delegation {
                         delegator: d.delegator,
                         validator: d.validator,
                         amount: d.amount,
@@ -366,7 +366,7 @@ impl Module for DistributionKeeper {
                     if !delegations[i].accumulated_rewards.is_empty() {
                         println!("Withdraw Rewards {} {}", delegations[i].accumulated_rewards[0].amount, delegations[i].accumulated_rewards[0].denom);
                         router.sudo(
-                            api, storage, block, 
+                            api, storage, block,
                             BankSudo::Mint {
                                 to_address: sender.to_string(),
                                 amount: delegations[i].accumulated_rewards.clone(),
@@ -451,11 +451,11 @@ mod test {
         let validator = Addr::unchecked("validator");
 
 
-        let funds = Coin { 
+        let funds = Coin {
             amount: Uint128::new(100),
             denom: "eth".into()
         };
-        let rewards = Coin { 
+        let rewards = Coin {
             amount: Uint128::new(10),
             denom: "eth".into()
         };
@@ -464,7 +464,15 @@ mod test {
         let staking = StakingKeeper::new();
         let router = mock_router();
 
-        staking.add_validator(&mut storage, validator.to_string()).unwrap();
+        staking.sudo(
+            &api,
+            &mut storage,
+            &router,
+            &block,
+            StakingSudo::AddValidator {
+                validator: validator.to_string(),
+            },
+        ).unwrap();
 
         let mut expected_delegation = FullDelegation {
             delegator: owner.clone(),
@@ -483,7 +491,7 @@ mod test {
             &block,
             owner.clone(),
             StakingMsg::Delegate {
-                validator: validator.clone().into(), 
+                validator: validator.clone().into(),
                 amount: funds.clone(),
             },
         ).unwrap();
@@ -542,7 +550,7 @@ mod test {
             &block,
             owner.clone(),
             StakingMsg::Undelegate {
-                validator: validator.clone().into(), 
+                validator: validator.clone().into(),
                 amount: funds.clone(),
             },
         ).unwrap();
