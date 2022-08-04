@@ -37,7 +37,7 @@ pub use crate::executor::{AppResponse, Executor};
 #[cfg(not(target_arch = "wasm32"))]
 pub use crate::module::Module;
 #[cfg(not(target_arch = "wasm32"))]
-pub use crate::staking::{FailingDistribution, FailingStaking, Staking, StakingSudo};
+pub use crate::staking::{DistributionKeeper, Distribution, StakingKeeper, Staking, StakingSudo};
 #[cfg(not(target_arch = "wasm32"))]
 pub use crate::wasm::{Wasm, WasmKeeper, WasmSudo};
 pub use nanoid;

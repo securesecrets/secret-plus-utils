@@ -965,15 +965,15 @@ mod test {
     use crate::transactions::StorageTransaction;
 
     use super::*;
-    use crate::staking::{FailingDistribution, FailingStaking};
+    use crate::staking::{DistributionKeeper, StakingKeeper};
 
     /// Type alias for default build `Router` to make its reference in typical scenario
     type BasicRouter<ExecC = Empty, QueryC = Empty> = Router<
         BankKeeper,
         FailingModule<ExecC, QueryC, Empty>,
         WasmKeeper<ExecC, QueryC>,
-        FailingStaking,
-        FailingDistribution,
+        StakingKeeper,
+        DistributionKeeper,
     >;
 
     fn mock_router() -> BasicRouter {
@@ -981,8 +981,8 @@ mod test {
             wasm: WasmKeeper::new(),
             bank: BankKeeper::new(),
             custom: FailingModule::new(),
-            staking: FailingStaking::new(),
-            distribution: FailingDistribution::new(),
+            staking: StakingKeeper::new(),
+            distribution: DistributionKeeper::new(),
         }
     }
 

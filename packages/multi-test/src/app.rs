@@ -17,7 +17,7 @@ use crate::bank::{Bank, BankKeeper, BankSudo};
 use crate::contracts::{gen_test_hash, Contract, ContractInstantiationInfo};
 use crate::executor::{AppResponse, Executor};
 use crate::module::{FailingModule, Module};
-use crate::staking::{Distribution, FailingDistribution, FailingStaking, Staking, StakingSudo};
+use crate::staking::{Distribution, DistributionKeeper, StakingKeeper, Staking, StakingSudo};
 use crate::transactions::transactional;
 use crate::wasm::{ContractData, Wasm, WasmKeeper, WasmSudo};
 
@@ -33,6 +33,8 @@ pub type BasicApp<ExecC = Empty, QueryC = Empty> = App<
     MockStorage,
     FailingModule<ExecC, QueryC, Empty>,
     WasmKeeper<ExecC, QueryC>,
+    StakingKeeper,
+    DistributionKeeper,
 >;
 
 /// Router is a persisted state. You can query this.
@@ -44,8 +46,8 @@ pub struct App<
     Storage = MockStorage,
     Custom = FailingModule<Empty, Empty, Empty>,
     Wasm = WasmKeeper<Empty, Empty>,
-    Staking = FailingStaking,
-    Distr = FailingDistribution,
+    Staking = StakingKeeper,
+    Distr = DistributionKeeper,
 > {
     router: Router<Bank, Custom, Wasm, Staking, Distr>,
     api: Api,
@@ -75,8 +77,8 @@ impl BasicApp {
                 BankKeeper,
                 FailingModule<Empty, Empty, Empty>,
                 WasmKeeper<Empty, Empty>,
-                FailingStaking,
-                FailingDistribution,
+                StakingKeeper,
+                DistributionKeeper,
             >,
             &dyn Api,
             &mut dyn Storage,
@@ -97,8 +99,8 @@ where
             BankKeeper,
             FailingModule<ExecC, QueryC, Empty>,
             WasmKeeper<ExecC, QueryC>,
-            FailingStaking,
-            FailingDistribution,
+            StakingKeeper,
+            DistributionKeeper,
         >,
         &dyn Api,
         &mut dyn Storage,
@@ -159,8 +161,8 @@ pub type BasicAppBuilder<ExecC, QueryC> = AppBuilder<
     MockStorage,
     FailingModule<ExecC, QueryC, Empty>,
     WasmKeeper<ExecC, QueryC>,
-    FailingStaking,
-    FailingDistribution,
+    StakingKeeper,
+    DistributionKeeper,
 >;
 
 /// Utility to build App in stages. If particular items wont be set, defaults would be used
@@ -182,8 +184,8 @@ impl Default
         MockStorage,
         FailingModule<Empty, Empty, Empty>,
         WasmKeeper<Empty, Empty>,
-        FailingStaking,
-        FailingDistribution,
+        StakingKeeper,
+        DistributionKeeper,
     >
 {
     fn default() -> Self {
@@ -198,8 +200,8 @@ impl
         MockStorage,
         FailingModule<Empty, Empty, Empty>,
         WasmKeeper<Empty, Empty>,
-        FailingStaking,
-        FailingDistribution,
+        StakingKeeper,
+        DistributionKeeper,
     >
 {
     /// Creates builder with default components working with empty exec and query messages.
@@ -211,8 +213,8 @@ impl
             bank: BankKeeper::new(),
             wasm: WasmKeeper::new(),
             custom: FailingModule::new(),
-            staking: FailingStaking::new(),
-            distribution: FailingDistribution::new(),
+            staking: StakingKeeper::new(),
+            distribution: DistributionKeeper::new(),
         }
     }
 }
@@ -224,8 +226,8 @@ impl<ExecC, QueryC>
         MockStorage,
         FailingModule<ExecC, QueryC, Empty>,
         WasmKeeper<ExecC, QueryC>,
-        FailingStaking,
-        FailingDistribution,
+        StakingKeeper,
+        DistributionKeeper,
     >
 where
     ExecC: Debug + Clone + PartialEq + JsonSchema + DeserializeOwned + 'static,
@@ -241,8 +243,8 @@ where
             bank: BankKeeper::new(),
             wasm: WasmKeeper::new(),
             custom: FailingModule::new(),
-            staking: FailingStaking::new(),
-            distribution: FailingDistribution::new(),
+            staking: StakingKeeper::new(),
+            distribution: DistributionKeeper::new(),
         }
     }
 }
@@ -814,9 +816,9 @@ where
             CosmosMsg::Bank(msg) => self.bank.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Custom(msg) => self.custom.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Staking(msg) => self.staking.execute(api, storage, self, block, sender, msg),
-            CosmosMsg::Distribution(msg) => self
-                .distribution
-                .execute(api, storage, self, block, sender, msg),
+            CosmosMsg::Distribution(msg) => {
+                self.distribution.execute(api, storage, self, block, sender, msg)
+            },
             _ => bail!("Cannot execute {:?}", msg),
         }
     }
