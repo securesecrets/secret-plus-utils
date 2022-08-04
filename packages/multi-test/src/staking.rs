@@ -58,15 +58,30 @@ impl StakingKeeper {
     }
 
     // adds 'amount' to 'accumulated_rewards' for every delegator/validator pair
-    pub fn add_rewards(
+    pub fn add_rewards<ExecC, QueryC: CustomQuery>(
         &self,
+        api: &dyn Api,
         storage: &mut dyn Storage,
+        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        block: &BlockInfo,
         amount: Coin,
     ) -> AnyResult<()> {
+
+        if amount.amount.is_zero() {
+            return Ok(());
+        }
 
         let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
 
         for i in 0..delegations.len() {
+            router.sudo(
+                api, storage, block, 
+                BankSudo::Mint {
+                    to_address: delegations[i].validator.to_string(),
+                    amount: vec![amount.clone()],
+                }.into(),
+            ).unwrap();
+
             if let Some(mut coin) = delegations[i]
                 .accumulated_rewards
                 .clone()
@@ -175,19 +190,21 @@ impl Module for StakingKeeper {
                               d.validator.clone() == validator && 
                               d.amount.denom == amount.denom.clone()) 
                     {
-                        router.sudo(
-                            api, storage, block, 
-                            BankSudo::Mint {
-                                to_address: sender.to_string(),
-                                amount: delegations[i].accumulated_rewards.clone(),
-                            }.into(),
-                        ).unwrap();
+                        if !delegations[i].accumulated_rewards.is_empty() {
+                            router.sudo(
+                                api, storage, block, 
+                                BankSudo::Mint {
+                                    to_address: sender.to_string(),
+                                    amount: delegations[i].accumulated_rewards.clone(),
+                                }.into(),
+                            ).unwrap();
+                        }
 
                         let mut undelegations = UNDELEGATIONS.load(storage).unwrap_or(vec![]);
                         undelegations.push(
                             (Addr::unchecked(validator), sender, vec![delegations[i].amount.clone()])
                         );
-                        UNDELEGATIONS.save(storage, &undelegations);
+                        UNDELEGATIONS.save(storage, &undelegations)?;
 
                         delegations[i].amount.amount -= amount.amount.clone();
                         delegations[i].accumulated_rewards = vec![];
@@ -223,6 +240,7 @@ impl Module for StakingKeeper {
     ) -> AnyResult<AppResponse> {
         match msg {
             StakingSudo::Slash { validator, percentage } => {
+                bail!("slashing not implemented");
                 Ok(AppResponse::default())
             }
         }
@@ -254,7 +272,7 @@ impl Module for StakingKeeper {
                         amount: d.amount,
                     })
                     .collect();
-                println!("Querying delegations {}", delegations.len());
+                //println!("Querying delegations {}", delegations.len());
                 //assert!(delegations.len() > 0);
                 Ok(to_binary(&AllDelegationsResponse { delegations })?)
             }
@@ -340,7 +358,7 @@ impl Module for DistributionKeeper {
     type QueryT = Empty;
     type SudoT = Empty;
 
-    fn execute<ExecC, QueryC>(
+    fn execute<ExecC, QueryC: CustomQuery>(
         &self,
         api: &dyn Api,
         storage: &mut dyn Storage,
@@ -348,19 +366,20 @@ impl Module for DistributionKeeper {
         block: &BlockInfo,
         sender: Addr,
         msg: DistributionMsg,
-    ) -> AnyResult<AppResponse>
-    where
-        ExecC:
-            std::fmt::Debug + Clone + PartialEq + JsonSchema + 'static,
-        QueryC: CustomQuery + 'static, {
+    ) -> AnyResult<AppResponse> {
+        println!("dist msg");
 
         match msg {
             DistributionMsg::WithdrawDelegatorReward { validator } => {
 
+                println!("trying to withdraw {} {}", validator.clone(), sender.clone());
+
                 let mut delegations = DELEGATIONS.load(storage)?;
+
                 if let Some(i) = delegations.iter()
                         .position(|d| d.delegator == sender && d.validator.clone() == validator) {
 
+                    println!("withdraw delegation {} {}", delegations[i].validator, sender);
                     if !delegations[i].accumulated_rewards.is_empty() {
                         println!("Withdraw Rewards {} {}", delegations[i].accumulated_rewards[0].amount, delegations[i].accumulated_rewards[0].denom);
                         router.sudo(
@@ -372,9 +391,11 @@ impl Module for DistributionKeeper {
                         ).unwrap();
                     }
                     delegations[i].accumulated_rewards = vec![];
+                    DELEGATIONS.save(storage, &delegations)?;
                 }
-                DELEGATIONS.save(storage, &delegations)?;
-                //bail!("WithdrawDelegatorReward Not Implemented");
+                else {
+                    bail!("{} has no rewards with {}", sender.clone(), validator.clone());
+                }
 
                 Ok(AppResponse { events: vec![], data: None })
             }
@@ -508,7 +529,10 @@ mod test {
         assert_eq!(delegations.delegations.len(), 1);
 
         staking.add_rewards(
+            &mut api,
             &mut storage,
+            &mut router,
+            &mut block,
             rewards.clone(),
         ).unwrap();
 

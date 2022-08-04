@@ -364,6 +364,7 @@ where
             CosmosMsg::Wasm(wasm) => CosmosMsg::Wasm(wasm),
             CosmosMsg::Bank(bank) => CosmosMsg::Bank(bank),
             CosmosMsg::Staking(staking) => CosmosMsg::Staking(staking),
+            CosmosMsg::Distribution(dist) => CosmosMsg::Distribution(dist),
             CosmosMsg::Custom(_) => unreachable!(),
             #[cfg(feature = "stargate")]
             CosmosMsg::Ibc(ibc) => CosmosMsg::Ibc(ibc),

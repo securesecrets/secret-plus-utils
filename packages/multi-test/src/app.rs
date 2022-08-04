@@ -34,6 +34,7 @@ pub type BasicApp<ExecC = Empty, QueryC = Empty> = App<
     FailingModule<ExecC, QueryC, Empty>,
     WasmKeeper<ExecC, QueryC>,
     StakingKeeper,
+    DistributionKeeper,
 >;
 
 /// Router is a persisted state. You can query this.
@@ -815,9 +816,9 @@ where
             CosmosMsg::Bank(msg) => self.bank.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Custom(msg) => self.custom.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Staking(msg) => self.staking.execute(api, storage, self, block, sender, msg),
-            CosmosMsg::Distribution(msg) => self
-                .distribution
-                .execute(api, storage, self, block, sender, msg),
+            CosmosMsg::Distribution(msg) => {
+                self.distribution.execute(api, storage, self, block, sender, msg)
+            },
             _ => bail!("Cannot execute {:?}", msg),
         }
     }
