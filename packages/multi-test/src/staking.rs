@@ -35,6 +35,13 @@ pub enum StakingSudo {
         validator: String,
         percentage: Decimal,
     },
+    AddValidator {
+        validator: String,
+    },
+    AddRewards {
+        amount: Coin,
+    },
+    FastForwardUndelegate { },
 }
 
 pub trait Staking: Module<ExecT = StakingMsg, QueryT = StakingQuery, SudoT = StakingSudo> {}
@@ -45,79 +52,6 @@ pub struct StakingKeeper {}
 impl StakingKeeper {
     pub fn new() -> Self {
         StakingKeeper {}
-    }
-
-    pub fn add_validator(
-        &self,
-        storage: &mut dyn Storage,
-        validator: String, 
-    ) -> AnyResult<()> {
-        let mut validators = VALIDATORS.load(storage).unwrap_or(vec![]);
-        validators.push(validator);
-        VALIDATORS.save(storage, &validators).map_err(Into::into)
-    }
-
-    // adds 'amount' to 'accumulated_rewards' for every delegator/validator pair
-    pub fn add_rewards<ExecC, QueryC: CustomQuery>(
-        &self,
-        api: &dyn Api,
-        storage: &mut dyn Storage,
-        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
-        block: &BlockInfo,
-        amount: Coin,
-    ) -> AnyResult<()> {
-
-        if amount.amount.is_zero() {
-            return Ok(());
-        }
-
-        let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
-
-        for i in 0..delegations.len() {
-            router.sudo(
-                api, storage, block, 
-                BankSudo::Mint {
-                    to_address: delegations[i].validator.to_string(),
-                    amount: vec![amount.clone()],
-                }.into(),
-            ).unwrap();
-
-            if let Some(mut coin) = delegations[i]
-                .accumulated_rewards
-                .clone()
-                .into_iter()
-                .find(|ar| ar.denom == amount.denom.clone()) {
-                    coin.amount += amount.amount.clone();
-                    break;
-            }
-            else {
-                delegations[i].accumulated_rewards.push(amount.clone());
-            }
-        }
-        DELEGATIONS.save(storage, &delegations).map_err(Into::into)
-    }
-
-    pub fn fast_forward_undelegate<ExecC, QueryC: CustomQuery>(
-        &self,
-        api: &dyn Api,
-        storage: &mut dyn Storage,
-        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
-        block: &BlockInfo,
-    ) -> AnyResult<()> {
-
-        for (validator, user, coins) in UNDELEGATIONS.load(storage).unwrap_or(vec![]) {
-            //router.bank.send(storage, validator, user, coins)?;
-            router.execute(
-                api, storage, block, 
-                validator, 
-                BankMsg::Send {
-                    to_address: user.to_string().clone(),
-                    amount: coins,
-                }.into(),
-            )?;
-        }
-        UNDELEGATIONS.save(storage, &vec![])?;
-        Ok(())
     }
 }
 
@@ -138,7 +72,6 @@ impl Module for StakingKeeper {
         msg: StakingMsg,
     ) -> AnyResult<AppResponse> {
 
-        //bail!("HERE");
         match msg {
             StakingMsg::Delegate { validator, amount } => {
                 println!("Delegating {}", amount);
@@ -163,11 +96,9 @@ impl Module for StakingKeeper {
                     .position(|d| d.delegator == sender &&
                               d.validator.clone() == validator &&
                               d.amount.denom == amount.clone().denom) {
-                        //bail!("Add delegation {} to {} for {}", sender, validator, amount);
                         delegations[i].amount.amount += amount.amount.clone();
                     }
                 else {
-                    //bail!("New delegation {} to {} for {}", sender, validator, amount);
                     delegations.push(FullDelegation {
                         delegator: sender,
                         validator: validator.clone(),
@@ -234,15 +165,67 @@ impl Module for StakingKeeper {
         &self,
         api: &dyn Api,
         storage: &mut dyn Storage,
-        _router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
-        _block: &BlockInfo,
+        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        block: &BlockInfo,
         msg: StakingSudo,
     ) -> AnyResult<AppResponse> {
         match msg {
             StakingSudo::Slash { validator, percentage } => {
                 bail!("slashing not implemented");
                 Ok(AppResponse::default())
-            }
+            },
+            StakingSudo::AddValidator { validator } => {
+                let mut validators = VALIDATORS.load(storage).unwrap_or(vec![]);
+                validators.push(validator);
+                VALIDATORS.save(storage, &validators)?;
+                Ok(AppResponse::default())
+            },
+            StakingSudo::AddRewards { amount } => {
+                if amount.amount.is_zero() {
+                    return Ok(AppResponse::default());
+                }
+
+                let mut delegations = DELEGATIONS.load(storage).unwrap_or(vec![]);
+
+                for i in 0..delegations.len() {
+                    router.sudo(
+                        api, storage, block, 
+                        BankSudo::Mint {
+                            to_address: delegations[i].validator.to_string(),
+                            amount: vec![amount.clone()],
+                        }.into(),
+                    ).unwrap();
+
+                    if let Some(mut coin) = delegations[i]
+                        .accumulated_rewards
+                        .clone()
+                        .into_iter()
+                        .find(|ar| ar.denom == amount.denom.clone()) {
+                            coin.amount += amount.amount.clone();
+                            break;
+                    }
+                    else {
+                        delegations[i].accumulated_rewards.push(amount.clone());
+                    }
+                }
+                DELEGATIONS.save(storage, &delegations)?;
+                Ok(AppResponse::default())
+            },
+            StakingSudo::FastForwardUndelegate { } => {
+                for (validator, user, coins) in UNDELEGATIONS.load(storage).unwrap_or(vec![]) {
+                    //router.bank.send(storage, validator, user, coins)?;
+                    router.execute(
+                        api, storage, block, 
+                        validator, 
+                        BankMsg::Send {
+                            to_address: user.to_string().clone(),
+                            amount: coins,
+                        }.into(),
+                    )?;
+                }
+                UNDELEGATIONS.save(storage, &vec![])?;
+                Ok(AppResponse::default())
+            },
         }
     }
 
@@ -528,12 +511,14 @@ mod test {
 
         assert_eq!(delegations.delegations.len(), 1);
 
-        staking.add_rewards(
-            &mut api,
+        staking.sudo(
+            &api,
             &mut storage,
-            &mut router,
-            &mut block,
-            rewards.clone(),
+            &router,
+            &block,
+            StakingSudo::AddRewards {
+                amount: rewards.clone(),
+            },
         ).unwrap();
 
         let delegation: DelegationResponse = from_binary(&staking.query(
