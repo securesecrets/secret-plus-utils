@@ -14,7 +14,6 @@ use crate::{
     app::{CosmosRouter, Router},
     executor::AppResponse,
     Module,
-    FailingModule,
     wasm::WasmKeeper,
     bank::{
         BankSudo,
@@ -85,14 +84,14 @@ impl StakingKeeper {
 
     pub fn fast_forward_undelegate<ExecC, QueryC: CustomQuery>(
         &self,
-        router: &dyn Router<BankKeeper, FailingModule, WasmKeeper, StakingKeeper, DistributionKeeper>, 
-        //&dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        api: &dyn Api,
         storage: &mut dyn Storage,
+        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        block: &BlockInfo,
     ) -> AnyResult<()> {
 
         for (validator, user, coins) in UNDELEGATIONS.load(storage).unwrap_or(vec![]) {
-            router.bank.send(storage, validator, user, coins)?;
-            /*
+            //router.bank.send(storage, validator, user, coins)?;
             router.execute(
                 api, storage, block, 
                 validator, 
@@ -101,7 +100,6 @@ impl StakingKeeper {
                     amount: coins,
                 }.into(),
             )?;
-            */
         }
         UNDELEGATIONS.save(storage, &vec![])?;
         Ok(())
@@ -177,8 +175,19 @@ impl Module for StakingKeeper {
                               d.validator.clone() == validator && 
                               d.amount.denom == amount.denom.clone()) 
                     {
-                        let mut undelegated = delegations[i].accumulated_rewards;
-                        undelegated.push(amount.clone());
+                        router.sudo(
+                            api, storage, block, 
+                            BankSudo::Mint {
+                                to_address: sender.to_string(),
+                                amount: delegations[i].accumulated_rewards.clone(),
+                            }.into(),
+                        ).unwrap();
+
+                        let mut undelegations = UNDELEGATIONS.load(storage).unwrap_or(vec![]);
+                        undelegations.push(
+                            (Addr::unchecked(validator), sender, vec![delegations[i].amount.clone()])
+                        );
+                        UNDELEGATIONS.save(storage, &undelegations);
 
                         delegations[i].amount.amount -= amount.amount.clone();
                         delegations[i].accumulated_rewards = vec![];
@@ -188,26 +197,11 @@ impl Module for StakingKeeper {
                         }
 
                         DELEGATIONS.save(storage, &delegations)?;
-
-                        let undelegations = UNDELEGATIONS.load(storage).unwrap_or(vec![]);
-                        undelegations.push((Addr::unchecked(validator), sender, undelegated));
-                        UNDELEGATIONS.save(storage, &undelegations);
-
                     }
                 else {
                     bail!("Insufficient delegation to undelegate");
                 }
 
-                /*
-                router.execute(
-                    api, storage, block, 
-                    api.addr_validate(&validator.clone())?, 
-                    BankMsg::Send {
-                        to_address: sender.to_string().clone(),
-                        amount: send_coins,
-                    }.into(),
-                )?;
-                */
                 Ok(AppResponse { events: vec![], data: None })
             }
             /*
