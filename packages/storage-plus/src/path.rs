@@ -2,25 +2,29 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::marker::PhantomData;
 
+use crate::{Json, Serde};
 use crate::helpers::{may_deserialize, must_deserialize, nested_namespaces_with_key};
 use crate::keys::Key;
-use cosmwasm_std::{to_vec, StdError, StdResult, Storage};
+use cosmwasm_std::{StdError, StdResult, Storage};
 use std::ops::Deref;
 
 #[derive(Debug, Clone)]
-pub struct Path<T>
+pub struct Path<T, Ser = Json>
 where
     T: Serialize + DeserializeOwned,
+    Ser: Serde,
 {
     /// all namespaces prefixes and concatenated with the key
     pub(crate) storage_key: Vec<u8>,
     // see https://doc.rust-lang.org/std/marker/struct.PhantomData.html#unused-type-parameters for why this is needed
     data: PhantomData<T>,
+    serialization_type: PhantomData<*const Ser>,
 }
 
-impl<T> Deref for Path<T>
+impl<T, Ser> Deref for Path<T, Ser>
 where
     T: Serialize + DeserializeOwned,
+    Ser: Serde
 {
     type Target = [u8];
 
@@ -29,9 +33,10 @@ where
     }
 }
 
-impl<T> Path<T>
+impl<T, Ser> Path<T, Ser>
 where
     T: Serialize + DeserializeOwned,
+    Ser: Serde,
 {
     pub fn new(namespace: &[u8], keys: &[&[u8]]) -> Self {
         let l = keys.len();
@@ -47,12 +52,13 @@ where
         Path {
             storage_key,
             data: PhantomData,
+            serialization_type: PhantomData,
         }
     }
 
     /// save will serialize the model and store, returns an error on serialization issues
     pub fn save(&self, store: &mut dyn Storage, data: &T) -> StdResult<()> {
-        store.set(&self.storage_key, &to_vec(data)?);
+        store.set(&self.storage_key, &Ser::serialize(data)?);
         Ok(())
     }
 
@@ -63,14 +69,14 @@ where
     /// load will return an error if no data is set at the given key, or on parse error
     pub fn load(&self, store: &dyn Storage) -> StdResult<T> {
         let value = store.get(&self.storage_key);
-        must_deserialize(&value)
+        must_deserialize::<T, Ser>(&value)
     }
 
     /// may_load will parse the data stored at the key if present, returns Ok(None) if no data there.
     /// returns an error on issues parsing
     pub fn may_load(&self, store: &dyn Storage) -> StdResult<Option<T>> {
         let value = store.get(&self.storage_key);
-        may_deserialize(&value)
+        may_deserialize::<T, Ser>(&value)
     }
 
     /// has returns true or false if any data is at this key, without parsing or interpreting the

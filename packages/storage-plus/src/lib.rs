@@ -15,6 +15,7 @@ mod map;
 mod path;
 mod prefix;
 mod snapshot;
+mod serialization;
 
 #[cfg(feature = "iterator")]
 pub use bound::{Bound, Bounder, PrefixBound, RawBound};
@@ -34,9 +35,13 @@ pub use int_key::CwIntKey;
 pub use item::Item;
 pub use keys::{Key, Prefixer, PrimaryKey};
 pub use keys_old::IntKeyOld;
+pub use serialization::{Serde, Bincode2, Json};
 pub use map::Map;
 pub use path::Path;
 #[cfg(feature = "iterator")]
 pub use prefix::{range_with_prefix, Prefix};
 #[cfg(feature = "iterator")]
 pub use snapshot::{SnapshotItem, SnapshotMap, Strategy};
+
+#[cfg(test)]
+pub use rstest_reuse;

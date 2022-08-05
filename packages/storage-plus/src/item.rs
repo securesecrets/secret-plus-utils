@@ -3,33 +3,41 @@ use serde::Serialize;
 use std::marker::PhantomData;
 
 use cosmwasm_std::{
-    to_vec, Addr, CustomQuery, QuerierWrapper, StdError, StdResult, Storage, WasmQuery,
+    Addr, CustomQuery, QuerierWrapper, StdError, StdResult, Storage, WasmQuery,
 };
 
-use crate::helpers::{may_deserialize, must_deserialize};
+use crate::{helpers::{may_deserialize, must_deserialize}, Serde, Json};
 
 /// Item stores one typed item at the given key.
 /// This is an analog of Singleton.
 /// It functions the same way as Path does but doesn't use a Vec and thus has a const fn constructor.
-pub struct Item<'a, T> {
+pub struct Item<'a, T, Ser = Json>
+    where Ser: Serde,
+{
     // this is full key - no need to length-prefix it, we only store one item
     storage_key: &'a [u8],
     // see https://doc.rust-lang.org/std/marker/struct.PhantomData.html#unused-type-parameters for why this is needed
     data_type: PhantomData<T>,
+    serialization_type: PhantomData<*const Ser>,
 }
 
-impl<'a, T> Item<'a, T> {
+impl<'a, T, Ser> Item<'a, T, Ser>
+where
+    Ser: Serde,
+{
     pub const fn new(storage_key: &'a str) -> Self {
         Item {
             storage_key: storage_key.as_bytes(),
             data_type: PhantomData,
+            serialization_type: PhantomData,
         }
     }
 }
 
-impl<'a, T> Item<'a, T>
+impl<'a, T, Ser> Item<'a, T, Ser>
 where
     T: Serialize + DeserializeOwned,
+    Ser: Serde,
 {
     // this gets the path of the data to use elsewhere
     pub fn as_slice(&self) -> &[u8] {
@@ -38,7 +46,7 @@ where
 
     /// save will serialize the model and store, returns an error on serialization issues
     pub fn save(&self, store: &mut dyn Storage, data: &T) -> StdResult<()> {
-        store.set(self.storage_key, &to_vec(data)?);
+        store.set(self.storage_key, &Ser::serialize(data)?);
         Ok(())
     }
 
@@ -49,14 +57,14 @@ where
     /// load will return an error if no data is set at the given key, or on parse error
     pub fn load(&self, store: &dyn Storage) -> StdResult<T> {
         let value = store.get(self.storage_key);
-        must_deserialize(&value)
+        must_deserialize::<T, Ser>(&value)
     }
 
     /// may_load will parse the data stored at the key if present, returns `Ok(None)` if no data there.
     /// returns an error on issues parsing
     pub fn may_load(&self, store: &dyn Storage) -> StdResult<Option<T>> {
         let value = store.get(self.storage_key);
-        may_deserialize(&value)
+        may_deserialize::<T, Ser>(&value)
     }
 
     /// Loads the data, perform the specified action, and store the result
@@ -96,8 +104,15 @@ where
 
 #[cfg(test)]
 mod test {
+    use crate::Bincode2;
+
     use super::*;
-    use cosmwasm_std::testing::MockStorage;
+    use cosmwasm_std::{
+        to_vec,
+        testing::MockStorage
+    };
+    use rstest::*;
+    use rstest_reuse::{self, *};
     use serde::{Deserialize, Serialize};
 
     use cosmwasm_std::{OverflowError, OverflowOperation, StdError};
@@ -110,25 +125,36 @@ mod test {
 
     // note const constructor rather than 2 funcs with Singleton
     const CONFIG: Item<Config> = Item::new("config");
+    const B_CONFIG: Item<Config, Bincode2> = Item::new("config");
 
-    #[test]
-    fn save_and_load() {
+    #[template]
+    #[rstest]
+    #[case(CONFIG)]
+    #[case(B_CONFIG)]
+    fn serialization(#[case] config: Item<Config, impl Serde>) { }
+
+    #[apply(serialization)]
+    fn save_and_load(
+        #[case] config: Item<Config, impl Serde>,
+    ) {
         let mut store = MockStorage::new();
 
-        assert!(CONFIG.load(&store).is_err());
-        assert_eq!(CONFIG.may_load(&store).unwrap(), None);
+        assert!(config.load(&store).is_err());
+        assert_eq!(config.may_load(&store).unwrap(), None);
 
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
-        assert_eq!(cfg, CONFIG.load(&store).unwrap());
+        assert_eq!(cfg, config.load(&store).unwrap());
     }
 
-    #[test]
-    fn remove_works() {
+    #[apply(serialization)]
+    fn remove_works(
+        #[case] config: Item<Config, impl Serde>,
+    ) {
         let mut store = MockStorage::new();
 
         // store data
@@ -136,27 +162,27 @@ mod test {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
-        assert_eq!(cfg, CONFIG.load(&store).unwrap());
+        config.save(&mut store, &cfg).unwrap();
+        assert_eq!(cfg, config.load(&store).unwrap());
 
         // remove it and loads None
-        CONFIG.remove(&mut store);
-        assert_eq!(None, CONFIG.may_load(&store).unwrap());
+        config.remove(&mut store);
+        assert_eq!(None, config.may_load(&store).unwrap());
 
         // safe to remove 2 times
-        CONFIG.remove(&mut store);
-        assert_eq!(None, CONFIG.may_load(&store).unwrap());
+        config.remove(&mut store);
+        assert_eq!(None, config.may_load(&store).unwrap());
     }
 
     #[test]
     fn isolated_reads() {
         let mut store = MockStorage::new();
-
+        let config = CONFIG;
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
         let reader = Item::<Config>::new("config");
         assert_eq!(cfg, reader.load(&store).unwrap());
@@ -166,16 +192,36 @@ mod test {
     }
 
     #[test]
-    fn update_success() {
+    fn isolated_reads_bincode() {
+        let mut store = MockStorage::new();
+
+        let config = B_CONFIG;
+        let cfg = Config {
+            owner: "admin".to_string(),
+            max_tokens: 1234,
+        };
+        config.save(&mut store, &cfg).unwrap();
+
+        let reader = Item::<Config, Bincode2>::new("config");
+        assert_eq!(cfg, reader.load(&store).unwrap());
+
+        let other_reader = Item::<Config, Bincode2>::new("config2");
+        assert_eq!(other_reader.may_load(&store).unwrap(), None);
+    }
+
+    #[apply(serialization)]
+    fn update_success(
+        #[case] config: Item<Config, impl Serde>,
+    ) {
         let mut store = MockStorage::new();
 
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
-        let output = CONFIG.update(&mut store, |mut c| -> StdResult<_> {
+        let output = config.update(&mut store, |mut c| -> StdResult<_> {
             c.max_tokens *= 2;
             Ok(c)
         });
@@ -184,20 +230,22 @@ mod test {
             max_tokens: 2468,
         };
         assert_eq!(output.unwrap(), expected);
-        assert_eq!(CONFIG.load(&store).unwrap(), expected);
+        assert_eq!(config.load(&store).unwrap(), expected);
     }
 
-    #[test]
-    fn update_can_change_variable_from_outer_scope() {
+    #[apply(serialization)]
+    fn update_can_change_variable_from_outer_scope(
+        #[case] config: Item<Config, impl Serde>,
+    ) {
         let mut store = MockStorage::new();
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
         let mut old_max_tokens = 0i32;
-        CONFIG
+        config
             .update(&mut store, |mut c| -> StdResult<_> {
                 old_max_tokens = c.max_tokens;
                 c.max_tokens *= 2;
@@ -207,17 +255,19 @@ mod test {
         assert_eq!(old_max_tokens, 1234);
     }
 
-    #[test]
-    fn update_does_not_change_data_on_error() {
+    #[apply(serialization)]
+    fn update_does_not_change_data_on_error(
+        #[case] config: Item<Config, impl Serde>,
+    ) {
         let mut store = MockStorage::new();
 
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
-        let output = CONFIG.update(&mut store, &|_c| {
+        let output = config.update(&mut store, &|_c| {
             Err(StdError::overflow(OverflowError::new(
                 OverflowOperation::Sub,
                 4,
@@ -228,11 +278,13 @@ mod test {
             StdError::Overflow { .. } => {}
             err => panic!("Unexpected error: {:?}", err),
         }
-        assert_eq!(CONFIG.load(&store).unwrap(), cfg);
+        assert_eq!(config.load(&store).unwrap(), cfg);
     }
 
-    #[test]
-    fn update_supports_custom_errors() {
+    #[apply(serialization)]
+    fn update_supports_custom_errors(
+        #[case] config: Item<Config, impl Serde>
+    ) {
         #[derive(Debug)]
         enum MyError {
             Std(StdError),
@@ -251,9 +303,9 @@ mod test {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg).unwrap();
+        config.save(&mut store, &cfg).unwrap();
 
-        let res = CONFIG.update(&mut store, |mut c| {
+        let res = config.update(&mut store, |mut c| {
             if c.max_tokens > 5000 {
                 return Err(MyError::Foo);
             }
@@ -270,41 +322,43 @@ mod test {
             MyError::Std(StdError::GenericErr { .. }) => {}
             err => panic!("Unexpected error: {:?}", err),
         }
-        assert_eq!(CONFIG.load(&store).unwrap(), cfg);
+        assert_eq!(config.load(&store).unwrap(), cfg);
     }
 
-    #[test]
-    fn readme_works() -> StdResult<()> {
+    #[apply(serialization)]
+    fn readme_works(
+        #[case] config: Item<Config, impl Serde>
+    ) -> StdResult<()> {
         let mut store = MockStorage::new();
 
         // may_load returns Option<T>, so None if data is missing
         // load returns T and Err(StdError::NotFound{}) if data is missing
-        let empty = CONFIG.may_load(&store)?;
+        let empty = config.may_load(&store)?;
         assert_eq!(None, empty);
         let cfg = Config {
             owner: "admin".to_string(),
             max_tokens: 1234,
         };
-        CONFIG.save(&mut store, &cfg)?;
-        let loaded = CONFIG.load(&store)?;
+        config.save(&mut store, &cfg)?;
+        let loaded = config.load(&store)?;
         assert_eq!(cfg, loaded);
 
         // update an item with a closure (includes read and write)
         // returns the newly saved value
-        let output = CONFIG.update(&mut store, |mut c| -> StdResult<_> {
+        let output = config.update(&mut store, |mut c| -> StdResult<_> {
             c.max_tokens *= 2;
             Ok(c)
         })?;
         assert_eq!(2468, output.max_tokens);
 
         // you can error in an update and nothing is saved
-        let failed = CONFIG.update(&mut store, |_| -> StdResult<_> {
+        let failed = config.update(&mut store, |_| -> StdResult<_> {
             Err(StdError::generic_err("failure mode"))
         });
         assert!(failed.is_err());
 
         // loading data will show the first update was saved
-        let loaded = CONFIG.load(&store)?;
+        let loaded = config.load(&store)?;
         let expected = Config {
             owner: "admin".to_string(),
             max_tokens: 2468,
@@ -312,8 +366,8 @@ mod test {
         assert_eq!(expected, loaded);
 
         // we can remove data as well
-        CONFIG.remove(&mut store);
-        let empty = CONFIG.may_load(&store)?;
+        config.remove(&mut store);
+        let empty = config.may_load(&store)?;
         assert_eq!(None, empty);
 
         Ok(())
