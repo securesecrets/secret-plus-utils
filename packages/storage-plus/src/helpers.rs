@@ -7,10 +7,10 @@
 use serde::de::DeserializeOwned;
 use std::any::type_name;
 
-use crate::keys::Key;
+use crate::{keys::Key, Serde};
 
 use cosmwasm_std::{
-    from_slice, to_vec, Addr, Binary, ContractResult, CustomQuery, QuerierWrapper, QueryRequest,
+    to_vec, Addr, Binary, ContractResult, CustomQuery, QuerierWrapper, QueryRequest,
     StdError, StdResult, SystemResult, WasmQuery,
 };
 
@@ -18,19 +18,19 @@ use cosmwasm_std::{
 ///
 /// value is an odd type, but this is meant to be easy to use with output from storage.get (Option<Vec<u8>>)
 /// and value.map(|s| s.as_slice()) seems trickier than &value
-pub(crate) fn may_deserialize<T: DeserializeOwned>(
+pub(crate) fn may_deserialize<T: DeserializeOwned, Ser: Serde>(
     value: &Option<Vec<u8>>,
 ) -> StdResult<Option<T>> {
     match value {
-        Some(vec) => Ok(Some(from_slice(vec)?)),
+        Some(vec) => Ok(Some(Ser::deserialize(vec)?)),
         None => Ok(None),
     }
 }
 
 /// must_deserialize parses json bytes from storage (Option), returning NotFound error if no data present
-pub(crate) fn must_deserialize<T: DeserializeOwned>(value: &Option<Vec<u8>>) -> StdResult<T> {
+pub(crate) fn must_deserialize<T: DeserializeOwned, Ser: Serde>(value: &Option<Vec<u8>>) -> StdResult<T> {
     match value {
-        Some(vec) => from_slice(vec),
+        Some(vec) => Ok(Ser::deserialize(vec)?),
         None => Err(StdError::not_found(type_name::<T>())),
     }
 }
@@ -124,6 +124,8 @@ pub(crate) fn query_raw<Q: CustomQuery>(
 
 #[cfg(test)]
 mod test {
+    use crate::Json;
+
     use super::*;
     use cosmwasm_std::{to_vec, StdError};
     use serde::{Deserialize, Serialize};
@@ -160,13 +162,13 @@ mod test {
         };
         let value = to_vec(&person).unwrap();
 
-        let may_parse: Option<Person> = may_deserialize(&Some(value)).unwrap();
+        let may_parse: Option<Person> = may_deserialize::<Person, Json>(&Some(value)).unwrap();
         assert_eq!(may_parse, Some(person));
     }
 
     #[test]
     fn may_deserialize_handles_none() {
-        let may_parse = may_deserialize::<Person>(&None).unwrap();
+        let may_parse = may_deserialize::<Person, Json>(&None).unwrap();
         assert_eq!(may_parse, None);
     }
 
@@ -179,13 +181,13 @@ mod test {
         let value = to_vec(&person).unwrap();
         let loaded = Some(value);
 
-        let parsed: Person = must_deserialize(&loaded).unwrap();
+        let parsed: Person = must_deserialize::<Person, Json>(&loaded).unwrap();
         assert_eq!(parsed, person);
     }
 
     #[test]
     fn must_deserialize_handles_none() {
-        let parsed = must_deserialize::<Person>(&None);
+        let parsed = must_deserialize::<Person, Json>(&None);
         match parsed.unwrap_err() {
             StdError::NotFound { kind, .. } => {
                 assert_eq!(kind, "secret_storage_plus::helpers::test::Person")

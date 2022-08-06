@@ -2,6 +2,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::marker::PhantomData;
 
+use crate::{Serde, Json};
 #[cfg(feature = "iterator")]
 use crate::bound::{Bound, PrefixBound};
 #[cfg(feature = "iterator")]
@@ -18,19 +19,23 @@ use crate::prefix::{namespaced_prefix_range, Prefix};
 use cosmwasm_std::{from_slice, Addr, CustomQuery, QuerierWrapper, StdError, StdResult, Storage};
 
 #[derive(Debug, Clone)]
-pub struct Map<'a, K, T> {
+pub struct Map<'a, K, T, Ser = Json> {
     namespace: &'a [u8],
     // see https://doc.rust-lang.org/std/marker/struct.PhantomData.html#unused-type-parameters for why this is needed
     key_type: PhantomData<K>,
     data_type: PhantomData<T>,
+    serialization_type: PhantomData<*const Ser>,
 }
 
-impl<'a, K, T> Map<'a, K, T> {
+impl<'a, K, T, Ser> Map<'a, K, T, Ser>
+    where Ser: Serde,
+{
     pub const fn new(namespace: &'a str) -> Self {
         Map {
             namespace: namespace.as_bytes(),
             data_type: PhantomData,
             key_type: PhantomData,
+            serialization_type: PhantomData,
         }
     }
 
@@ -39,12 +44,13 @@ impl<'a, K, T> Map<'a, K, T> {
     }
 }
 
-impl<'a, K, T> Map<'a, K, T>
+impl<'a, K, T, Ser> Map<'a, K, T, Ser>
 where
     T: Serialize + DeserializeOwned,
     K: PrimaryKey<'a>,
+    Ser: Serde,
 {
-    pub fn key(&self, k: K) -> Path<T> {
+    pub fn key(&self, k: K) -> Path<T, Ser> {
         Path::new(
             self.namespace,
             &k.key().iter().map(Key::as_ref).collect::<Vec<_>>(),
@@ -264,6 +270,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use rstest::*;
+    use rstest_reuse::{self, *};
     use serde::{Deserialize, Serialize};
     use std::ops::Deref;
 
@@ -274,7 +282,7 @@ mod test {
     #[cfg(feature = "iterator")]
     use crate::bound::Bounder;
 
-    use crate::int_key::CwIntKey;
+    use crate::{int_key::CwIntKey, Bincode2};
     #[cfg(feature = "iterator")]
     use crate::IntKeyOld;
 
@@ -285,6 +293,8 @@ mod test {
     }
 
     const PEOPLE: Map<&[u8], Data> = Map::new("people");
+    const B_PEOPLE: Map<&[u8], Data, Bincode2> = Map::new("people");
+
     #[cfg(feature = "iterator")]
     const PEOPLE_ID: Map<u32, Data> = Map::new("people_id");
     #[cfg(feature = "iterator")]
@@ -293,19 +303,39 @@ mod test {
     const SIGNED_ID: Map<i32, Data> = Map::new("signed_id");
 
     const ALLOWANCE: Map<(&[u8], &[u8]), u64> = Map::new("allow");
+    const B_ALLOWANCE: Map<(&[u8], &[u8]), u64, Bincode2> = Map::new("allow");
 
     const TRIPLE: Map<(&[u8], u8, &str), u64> = Map::new("triple");
+    const B_TRIPLE: Map<(&[u8], u8, &str), u64, Bincode2> = Map::new("triple");
 
-    #[test]
-    fn create_path() {
-        let path = PEOPLE.key(b"john");
+    type Key<'a> = &'a[u8];
+    type AKey<'a> = (&'a[u8], &'a[u8]);
+    type TKey<'a> = (&'a[u8], u8, &'a str);
+
+    #[template]
+    #[rstest]
+    #[case(PEOPLE, ALLOWANCE, TRIPLE)]
+    #[case(B_PEOPLE, B_ALLOWANCE, B_TRIPLE)]
+    fn serialization_3(
+        #[case] people: Map<Key, Data, impl Serde>,
+        #[case] allowance: Map<AKey, u64, impl Serde>,
+        #[case] triple: Map<TKey, u64, impl Serde>,
+    ) {}
+
+    #[apply(serialization_3)]
+    fn create_path(
+        #[case] people: Map<Key, Data, impl Serde>,
+        #[case] allowance: Map<AKey, u64, impl Serde>,
+        #[case] triple: Map<TKey, u64, impl Serde>,
+    ) {
+        let path = people.key(b"john");
         let key = path.deref();
         // this should be prefixed(people) || john
         assert_eq!("people".len() + "john".len() + 2, key.len());
         assert_eq!(b"people".to_vec().as_slice(), &key[2..8]);
         assert_eq!(b"john".to_vec().as_slice(), &key[8..]);
 
-        let path = ALLOWANCE.key((b"john", b"maria"));
+        let path = allowance.key((b"john", b"maria"));
         let key = path.deref();
         // this should be prefixed(allow) || prefixed(john) || maria
         assert_eq!(
@@ -316,7 +346,7 @@ mod test {
         assert_eq!(b"john".to_vec().as_slice(), &key[9..13]);
         assert_eq!(b"maria".to_vec().as_slice(), &key[13..]);
 
-        let path = TRIPLE.key((b"john", 8u8, "pedro"));
+        let path = triple.key((b"john", 8u8, "pedro"));
         let key = path.deref();
         // this should be prefixed(allow) || prefixed(john) || maria
         assert_eq!(
@@ -329,12 +359,12 @@ mod test {
         assert_eq!(b"pedro".to_vec().as_slice(), &key[17..]);
     }
 
-    #[test]
-    fn save_and_load() {
+    #[rstest]
+    fn save_and_load(#[values(PEOPLE, B_PEOPLE)] people: Map<Key, Data, impl Serde> ) {
         let mut store = MockStorage::new();
 
         // save and load on one key
-        let john = PEOPLE.key(b"john");
+        let john = people.key(b"john");
         let data = Data {
             name: "John".to_string(),
             age: 32,
@@ -344,18 +374,18 @@ mod test {
         assert_eq!(data, john.load(&store).unwrap());
 
         // nothing on another key
-        assert_eq!(None, PEOPLE.may_load(&store, b"jack").unwrap());
+        assert_eq!(None, people.may_load(&store, b"jack").unwrap());
 
         // same named path gets the data
-        assert_eq!(data, PEOPLE.load(&store, b"john").unwrap());
+        assert_eq!(data, people.load(&store, b"john").unwrap());
 
         // removing leaves us empty
         john.remove(&mut store);
         assert_eq!(None, john.may_load(&store).unwrap());
     }
 
-    #[test]
-    fn existence() {
+    #[rstest]
+    fn existence(#[values(PEOPLE, B_PEOPLE)] people: Map<Key, Data, impl Serde>) {
         let mut store = MockStorage::new();
 
         // set data in proper format
@@ -363,61 +393,61 @@ mod test {
             name: "John".to_string(),
             age: 32,
         };
-        PEOPLE.save(&mut store, b"john", &data).unwrap();
+        people.save(&mut store, b"john", &data).unwrap();
 
         // set and remove it
-        PEOPLE.save(&mut store, b"removed", &data).unwrap();
-        PEOPLE.remove(&mut store, b"removed");
+        people.save(&mut store, b"removed", &data).unwrap();
+        people.remove(&mut store, b"removed");
 
         // invalid, but non-empty data
-        store.set(&PEOPLE.key(b"random"), b"random-data");
+        store.set(&people.key(b"random"), b"random-data");
 
         // any data, including invalid or empty is returned as "has"
-        assert!(PEOPLE.has(&store, b"john"));
-        assert!(PEOPLE.has(&store, b"random"));
+        assert!(people.has(&store, b"john"));
+        assert!(people.has(&store, b"random"));
 
         // if nothing was written, it is false
-        assert!(!PEOPLE.has(&store, b"never-writen"));
-        assert!(!PEOPLE.has(&store, b"removed"));
+        assert!(!people.has(&store, b"never-writen"));
+        assert!(!people.has(&store, b"removed"));
     }
 
-    #[test]
-    fn composite_keys() {
+    #[rstest]
+    fn composite_keys(#[values(ALLOWANCE, B_ALLOWANCE)] allowance: Map<AKey, u64, impl Serde>) {
         let mut store = MockStorage::new();
 
         // save and load on a composite key
-        let allow = ALLOWANCE.key((b"owner", b"spender"));
+        let allow = allowance.key((b"owner", b"spender"));
         assert_eq!(None, allow.may_load(&store).unwrap());
         allow.save(&mut store, &1234).unwrap();
         assert_eq!(1234, allow.load(&store).unwrap());
 
         // not under other key
-        let different = ALLOWANCE.may_load(&store, (b"owners", b"pender")).unwrap();
+        let different = allowance.may_load(&store, (b"owners", b"pender")).unwrap();
         assert_eq!(None, different);
 
         // matches under a proper copy
-        let same = ALLOWANCE.load(&store, (b"owner", b"spender")).unwrap();
+        let same = allowance.load(&store, (b"owner", b"spender")).unwrap();
         assert_eq!(1234, same);
     }
 
-    #[test]
-    fn triple_keys() {
+    #[rstest]
+    fn triple_keys(#[values(TRIPLE, B_TRIPLE)] triple: Map<TKey, u64, impl Serde>) {
         let mut store = MockStorage::new();
 
         // save and load on a triple composite key
-        let triple = TRIPLE.key((b"owner", 10u8, "recipient"));
-        assert_eq!(None, triple.may_load(&store).unwrap());
-        triple.save(&mut store, &1234).unwrap();
-        assert_eq!(1234, triple.load(&store).unwrap());
+        let triple_path = triple.key((b"owner", 10u8, "recipient"));
+        assert_eq!(None, triple_path.may_load(&store).unwrap());
+        triple_path.save(&mut store, &1234).unwrap();
+        assert_eq!(1234, triple_path.load(&store).unwrap());
 
         // not under other key
         let different = TRIPLE
-            .may_load(&store, (b"owners", 10u8, "ecipient"))
+            .may_load(&store, (b"owners", 10u8, "recipient"))
             .unwrap();
         assert_eq!(None, different);
 
         // matches under a proper copy
-        let same = TRIPLE.load(&store, (b"owner", 10u8, "recipient")).unwrap();
+        let same = triple.load(&store, (b"owner", 10u8, "recipient")).unwrap();
         assert_eq!(1234, same);
     }
 
@@ -431,13 +461,13 @@ mod test {
             name: "John".to_string(),
             age: 32,
         };
-        PEOPLE.save(&mut store, b"john", &data).unwrap();
+        people.save(&mut store, b"john", &data).unwrap();
 
         let data2 = Data {
             name: "Jim".to_string(),
             age: 44,
         };
-        PEOPLE.save(&mut store, b"jim", &data2).unwrap();
+        people.save(&mut store, b"jim", &data2).unwrap();
 
         // let's try to iterate!
         let all: StdResult<Vec<_>> = PEOPLE
@@ -493,22 +523,22 @@ mod test {
             name: "John".to_string(),
             age: 32,
         };
-        PEOPLE.save(&mut store, b"john", &data).unwrap();
+        people.save(&mut store, b"john", &data).unwrap();
 
         let data2 = Data {
             name: "Jim".to_string(),
             age: 44,
         };
-        PEOPLE.save(&mut store, b"jim", &data2).unwrap();
+        people.save(&mut store, b"jim", &data2).unwrap();
 
         let data3 = Data {
             name: "Ada".to_string(),
             age: 23,
         };
-        PEOPLE.save(&mut store, b"ada", &data3).unwrap();
+        people.save(&mut store, b"ada", &data3).unwrap();
 
         // let's try to iterate!
-        let all: StdResult<Vec<_>> = PEOPLE.range(&store, None, None, Order::Ascending).collect();
+        let all: StdResult<Vec<_>> = people.range(&store, None, None, Order::Ascending).collect();
         let all = all.unwrap();
         assert_eq!(3, all.len());
         assert_eq!(
@@ -1036,7 +1066,7 @@ mod test {
             .unwrap();
 
         // let's try to iterate!
-        let all: StdResult<Vec<_>> = TRIPLE.range(&store, None, None, Order::Ascending).collect();
+        let all: StdResult<Vec<_>> = triple.range(&store, None, None, Order::Ascending).collect();
         let all = all.unwrap();
         assert_eq!(4, all.len());
         assert_eq!(
@@ -1115,23 +1145,23 @@ mod test {
         assert_eq!(all, vec![("recipient2".to_string(), 3000),]);
     }
 
-    #[test]
-    fn basic_update() {
+    #[rstest]
+    fn basic_update(#[values(ALLOWANCE, B_ALLOWANCE)] allowance: Map<AKey, u64, impl Serde>) {
         let mut store = MockStorage::new();
 
         let add_ten = |a: Option<u64>| -> StdResult<_> { Ok(a.unwrap_or_default() + 10) };
 
         // save and load on three keys, one under different owner
         let key: (&[u8], &[u8]) = (b"owner", b"spender");
-        ALLOWANCE.update(&mut store, key, add_ten).unwrap();
-        let twenty = ALLOWANCE.update(&mut store, key, add_ten).unwrap();
+        allowance.update(&mut store, key, add_ten).unwrap();
+        let twenty = allowance.update(&mut store, key, add_ten).unwrap();
         assert_eq!(20, twenty);
-        let loaded = ALLOWANCE.load(&store, key).unwrap();
+        let loaded = allowance.load(&store, key).unwrap();
         assert_eq!(20, loaded);
     }
 
-    #[test]
-    fn readme_works() -> StdResult<()> {
+    #[rstest]
+    fn readme_works(#[values(PEOPLE, B_PEOPLE)] people: Map<Key, Data, impl Serde>) -> StdResult<()> {
         let mut store = MockStorage::new();
         let data = Data {
             name: "John".to_string(),
@@ -1139,14 +1169,14 @@ mod test {
         };
 
         // load and save with extra key argument
-        let empty = PEOPLE.may_load(&store, b"john")?;
+        let empty = people.may_load(&store, b"john")?;
         assert_eq!(None, empty);
-        PEOPLE.save(&mut store, b"john", &data)?;
-        let loaded = PEOPLE.load(&store, b"john")?;
+        people.save(&mut store, b"john", &data)?;
+        let loaded = people.load(&store, b"john")?;
         assert_eq!(data, loaded);
 
         // nothing on another key
-        let missing = PEOPLE.may_load(&store, b"jack")?;
+        let missing = people.may_load(&store, b"jack")?;
         assert_eq!(None, missing);
 
         // update function for new or existing keys
@@ -1163,53 +1193,55 @@ mod test {
             }
         };
 
-        let old_john = PEOPLE.update(&mut store, b"john", birthday)?;
+        let old_john = people.update(&mut store, b"john", birthday)?;
         assert_eq!(33, old_john.age);
         assert_eq!("John", old_john.name.as_str());
 
-        let new_jack = PEOPLE.update(&mut store, b"jack", birthday)?;
+        let new_jack = people.update(&mut store, b"jack", birthday)?;
         assert_eq!(0, new_jack.age);
         assert_eq!("Newborn", new_jack.name.as_str());
 
         // update also changes the store
-        assert_eq!(old_john, PEOPLE.load(&store, b"john")?);
-        assert_eq!(new_jack, PEOPLE.load(&store, b"jack")?);
+        assert_eq!(old_john, people.load(&store, b"john")?);
+        assert_eq!(new_jack, people.load(&store, b"jack")?);
 
         // removing leaves us empty
-        PEOPLE.remove(&mut store, b"john");
-        let empty = PEOPLE.may_load(&store, b"john")?;
+        people.remove(&mut store, b"john");
+        let empty = people.may_load(&store, b"john")?;
         assert_eq!(None, empty);
 
         Ok(())
     }
 
-    #[test]
-    fn readme_works_composite_keys() -> StdResult<()> {
+    #[rstest]
+    fn readme_works_composite_keys(#[values(ALLOWANCE, B_ALLOWANCE)] allowance: Map<AKey, u64, impl Serde>) -> StdResult<()> {
         let mut store = MockStorage::new();
 
         // save and load on a composite key
-        let empty = ALLOWANCE.may_load(&store, (b"owner", b"spender"))?;
+        let empty = allowance.may_load(&store, (b"owner", b"spender"))?;
         assert_eq!(None, empty);
-        ALLOWANCE.save(&mut store, (b"owner", b"spender"), &777)?;
-        let loaded = ALLOWANCE.load(&store, (b"owner", b"spender"))?;
+        allowance.save(&mut store, (b"owner", b"spender"), &777)?;
+        let loaded = allowance.load(&store, (b"owner", b"spender"))?;
         assert_eq!(777, loaded);
 
         // doesn't appear under other key (even if a concat would be the same)
-        let different = ALLOWANCE.may_load(&store, (b"owners", b"pender")).unwrap();
+        let different = allowance.may_load(&store, (b"owners", b"pender")).unwrap();
         assert_eq!(None, different);
 
         // simple update
-        ALLOWANCE.update(&mut store, (b"owner", b"spender"), |v| -> StdResult<u64> {
+        allowance.update(&mut store, (b"owner", b"spender"), |v| -> StdResult<u64> {
             Ok(v.unwrap_or_default() + 222)
         })?;
-        let loaded = ALLOWANCE.load(&store, (b"owner", b"spender"))?;
+        let loaded = allowance.load(&store, (b"owner", b"spender"))?;
         assert_eq!(999, loaded);
 
         Ok(())
     }
 
-    #[test]
-    fn readme_works_with_path() -> StdResult<()> {
+    #[rstest]
+    fn readme_works_with_path(#[values(PEOPLE, B_PEOPLE)] people: Map<Key, Data, impl Serde>,
+    #[values(ALLOWANCE, B_ALLOWANCE)] allowance: Map<AKey, u64, impl Serde>
+) -> StdResult<()> {
         let mut store = MockStorage::new();
         let data = Data {
             name: "John".to_string(),
@@ -1217,7 +1249,7 @@ mod test {
         };
 
         // create a Path one time to use below
-        let john = PEOPLE.key(b"john");
+        let john = people.key(b"john");
 
         // Use this just like an Item above
         let empty = john.may_load(&store)?;
@@ -1230,7 +1262,7 @@ mod test {
         assert_eq!(None, empty);
 
         // same for composite keys, just use both parts in key()
-        let allow = ALLOWANCE.key((b"owner", b"spender"));
+        let allow = allowance.key((b"owner", b"spender"));
         allow.save(&mut store, &1234)?;
         let loaded = allow.load(&store)?;
         assert_eq!(1234, loaded);
@@ -1253,12 +1285,12 @@ mod test {
             name: "John".to_string(),
             age: 32,
         };
-        PEOPLE.save(&mut store, b"john", &data)?;
+        people.save(&mut store, b"john", &data)?;
         let data2 = Data {
             name: "Jim".to_string(),
             age: 44,
         };
-        PEOPLE.save(&mut store, b"jim", &data2)?;
+        people.save(&mut store, b"jim", &data2)?;
 
         // iterate over them all
         let all: StdResult<Vec<_>> = PEOPLE
@@ -1281,9 +1313,9 @@ mod test {
         assert_eq!(all?, vec![(b"john".to_vec(), data)]);
 
         // save and load on three keys, one under different owner
-        ALLOWANCE.save(&mut store, (b"owner", b"spender"), &1000)?;
-        ALLOWANCE.save(&mut store, (b"owner", b"spender2"), &3000)?;
-        ALLOWANCE.save(&mut store, (b"owner2", b"spender"), &5000)?;
+        allowance.save(&mut store, (b"owner", b"spender"), &1000)?;
+        allowance.save(&mut store, (b"owner", b"spender2"), &3000)?;
+        allowance.save(&mut store, (b"owner2", b"spender"), &5000)?;
 
         // get all under one key
         let all: StdResult<Vec<_>> = ALLOWANCE
