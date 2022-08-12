@@ -37,3 +37,4 @@ prost = "0.9"
 anyhow = "1"
 thiserror = "1"
 derivative = "2"
+getrandom = { version = "0.2", features = ["js"] }

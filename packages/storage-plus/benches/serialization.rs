@@ -1,6 +1,6 @@
 use cosmwasm_std::{testing::MockStorage, Uint512};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-
+use better_secret_math::U256;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::mem;
@@ -16,15 +16,15 @@ struct Config {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct BigChungis {
-    pub b: Uint512,
-    pub i: Uint512,
-    pub g: Uint512,
-    pub chungis: Vec<Uint512>,
+    pub b: [U256; 2],
+    pub i: [U256; 2],
+    pub g: [U256; 2],
+    pub chungis: [U256; 10],
 }
 
 impl BigChungis {
     pub fn big() -> Self {
-        BigChungis { b: Uint512::MAX, i: Uint512::MAX, g: Uint512::MAX, chungis: [Uint512::MAX; 10].to_vec() }
+        BigChungis { b: [U256::MAX; 2], i: [U256::MAX; 2], g: [U256::MAX; 2], chungis: [U256::MAX; 10] }
     }
 }
 
