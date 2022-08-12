@@ -27,12 +27,14 @@ cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 bincode2 = { version = "2.0.1" }
+better-secret-math = { git = "https://github.com/securesecrets/better-secret-math" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = [ "html_reports" ] }
 rstest = "0.15.0"
 rstest_reuse = "0.4.0"
 rand = "0.8"
+getrandom = { version = "0.2", features = ["js"] }
 
 [[bench]]
 name = "main"
