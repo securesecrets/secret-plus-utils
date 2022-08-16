@@ -1,10 +1,12 @@
+mod serialization;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use rand::Rng;
 use std::mem;
 use std::time::Duration;
 
-use secret_storage_plus::CwIntKey;
+use secret_storage_plus::{CwIntKey};
 
 fn bench_signed_int_key(c: &mut Criterion) {
     let mut group = c.benchmark_group("Signed int keys");
@@ -158,4 +160,8 @@ criterion_group!(
     config = make_config();
     targets = bench_unsigned_int_key
 );
-criterion_main!(signed_int_key, unsigned_int_key);
+criterion_main!(
+    serialization::benches,
+    //signed_int_key,
+    //unsigned_int_key
+);
