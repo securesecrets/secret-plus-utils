@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "packages/secretcli",
   "packages/multi-test",
   "packages/storage-plus",
   "packages/utils",

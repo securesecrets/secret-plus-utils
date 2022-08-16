@@ -60,7 +60,7 @@ pub fn secretcli_run(command: Vec<String>) -> Result<Value> {
         result = cli.output().expect("Unexpected error");
     }
     let out = result.stdout;
-    serde_json::from_str(&str::from_utf8_lossy(&out))
+    serde_json::from_str(&String::from_utf8_lossy(&out))
 }
 
 ///
