@@ -19,9 +19,11 @@ mod prefix;
 mod serialization;
 mod snapshot;
 
+pub use append_store::AppendStore;
 #[cfg(feature = "iterator")]
 pub use bound::{Bound, Bounder, PrefixBound, RawBound};
 pub use de::KeyDeserialize;
+pub use deque_store::DequeStore;
 pub use endian::Endian;
 #[cfg(feature = "iterator")]
 pub use indexed_map::{IndexList, IndexedMap};
