@@ -1,6 +1,8 @@
+mod append_store;
 mod bound;
 mod de;
 mod de_old;
+mod deque_store;
 mod endian;
 mod helpers;
 mod indexed_map;
@@ -14,8 +16,8 @@ mod keys_old;
 mod map;
 mod path;
 mod prefix;
-mod snapshot;
 mod serialization;
+mod snapshot;
 
 #[cfg(feature = "iterator")]
 pub use bound::{Bound, Bounder, PrefixBound, RawBound};
@@ -35,11 +37,11 @@ pub use int_key::CwIntKey;
 pub use item::Item;
 pub use keys::{Key, Prefixer, PrimaryKey};
 pub use keys_old::IntKeyOld;
-pub use serialization::{Serde, Bincode2, Json};
 pub use map::Map;
 pub use path::Path;
 #[cfg(feature = "iterator")]
 pub use prefix::{range_with_prefix, Prefix};
+pub use serialization::{Bincode2, Json, Serde};
 #[cfg(feature = "iterator")]
 pub use snapshot::{SnapshotItem, SnapshotMap, Strategy};
 
