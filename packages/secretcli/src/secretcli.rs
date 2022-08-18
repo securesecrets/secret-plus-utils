@@ -1,6 +1,8 @@
 use crate::cli_types::{
     ListCodeResponse, ListContractCode, NetContract, SignedTx, TxCompute, TxQuery, TxResponse,
 };
+use crate::utils::print_contract;
+use colored::Colorize;
 use serde_json::{Result, Value};
 use std::fmt::Display;
 use std::io::BufReader;
@@ -265,7 +267,7 @@ pub trait TestInit: serde::Serialize {
         backend: Option<&str>,
     ) -> Result<NetContract> {
         let store_response =
-            store_contract(contract_file, Option::from(&*sender), store_gas, backend)?;
+            store_contract(contract_file, Option::from(sender), store_gas, backend)?;
 
         let store_query = query_hash(store_response.txhash)?;
 
@@ -335,7 +337,7 @@ pub fn test_inst_init<Message: serde::Serialize>(
         Ok(c) => Ok(c),
         _ => {
             let store_response =
-                store_contract(contract_file, Option::from(&*sender), store_gas, backend)?;
+                store_contract(contract_file, Option::from(sender), store_gas, backend)?;
             let store_query = query_hash(store_response.txhash)?;
             let mut contract = NetContract {
                 label: label.to_string(),
@@ -375,6 +377,10 @@ pub fn test_inst_init<Message: serde::Serialize>(
                     break;
                 }
             }
+
+            println!("{}", "Deployed contract".on_green());
+            print_contract(&contract);
+
             match name {
                 Some(n) => save_contract(n, &contract),
                 None    => println!("This contract deployment will not be cached because a name was not provided upon instantiation."),

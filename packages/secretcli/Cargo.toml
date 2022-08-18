@@ -11,7 +11,8 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = []
+default = ["helpers"]
+helpers = ["cosmwasm-std"]
 
 [dependencies]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
@@ -20,4 +21,9 @@ serde_json = { version = "1.0.67"}
 # uses rand, but with small_rng feature flag so it does not import std and std_rng
 # https://docs.rs/nanoid/latest/nanoid/
 nanoid = "0.4.0"
+colored = "2.0.0"
+
+# Optional for now
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", optional = true }
+
 
