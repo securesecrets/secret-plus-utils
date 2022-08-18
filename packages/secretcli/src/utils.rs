@@ -1,7 +1,7 @@
 use colored::*;
 use crate::{
     cli_types::{NetContract, TxQuery},
-    secretcli::{test_contract_handle, test_inst_init},
+    secretcli::{test_contract_handle, init_cache},
 };
 use serde::Serialize;
 use std::fmt::Display;
@@ -44,7 +44,7 @@ pub fn test_contract_init_and_debug<Message: serde::Serialize>(
     backend: Option<&str>,
     name: Option<&str>,
 ) {
-    let result = test_inst_init(
+    let result = init_cache(
         &msg,
         file,
         &generate_label(8),

@@ -110,3 +110,9 @@ pub struct PubKey {
     pub msg_type: String,
     pub value: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct StoredContract {
+    pub id: String,
+    pub code_hash: String,
+}
