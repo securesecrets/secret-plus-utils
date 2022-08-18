@@ -1180,6 +1180,7 @@ dependencies = [
 name = "secretcli"
 version = "0.1.0"
 dependencies = [
+ "nanoid",
  "serde",
  "serde_json",
 ]
