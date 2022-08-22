@@ -33,7 +33,7 @@ better-secret-math = { git = "https://github.com/securesecrets/better-secret-mat
 criterion = { version = "0.3", features = [ "html_reports" ] }
 rstest = "0.15.0"
 rstest_reuse = "0.4.0"
-rand = "0.8"
+rand = { version = "0.8.5", default-features = false }
 
 [[bench]]
 name = "main"

@@ -16,6 +16,7 @@ mod path;
 mod prefix;
 mod snapshot;
 mod serialization;
+mod traits;
 
 #[cfg(feature = "iterator")]
 pub use bound::{Bound, Bounder, PrefixBound, RawBound};
@@ -38,6 +39,7 @@ pub use keys_old::IntKeyOld;
 pub use serialization::{Serde, Bincode2, Json};
 pub use map::Map;
 pub use path::Path;
+pub use traits::{GenericItemStorage, GenericMapStorage, ItemStorage, MapStorage, NaiveItemStorage, NaiveMapStorage};
 #[cfg(feature = "iterator")]
 pub use prefix::{range_with_prefix, Prefix};
 #[cfg(feature = "iterator")]
