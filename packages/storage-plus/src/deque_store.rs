@@ -13,10 +13,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use cosmwasm_std::{StdError, StdResult, Storage};
 
-use crate::{
-    helpers::{may_deserialize, must_deserialize},
-    Json, Serde,
-};
+use crate::{Json, Serde};
 
 const LEN_KEY: &[u8] = b"len";
 const OFFSET_KEY: &[u8] = b"off";
@@ -39,9 +36,9 @@ where
 
 impl<'a, 'b, T: Serialize + DeserializeOwned, Ser: Serde> DequeStore<'a, T, Ser> {
     /// constructor
-    pub const fn new(prefix: &'a [u8]) -> Self {
+    pub const fn new(prefix: &'a str) -> Self {
         Self {
-            namespace: prefix,
+            namespace: prefix.as_bytes(),
             prefix: None,
             length: Mutex::new(None),
             offset: Mutex::new(None),
@@ -51,11 +48,11 @@ impl<'a, 'b, T: Serialize + DeserializeOwned, Ser: Serde> DequeStore<'a, T, Ser>
     }
     /// This is used to produce a new DequeStorage. This can be used when you want to associate an AppendListStorage to each user
     /// and you still get to define the DequeStorage as a static constant
-    pub fn add_suffix(&self, suffix: &[u8]) -> Self {
+    pub fn add_suffix(&self, suffix: &str) -> Self {
         let prefix = if let Some(prefix) = &self.prefix {
-            [prefix.clone(), suffix.to_vec()].concat()
+            [prefix.clone(), suffix.as_bytes().to_vec()].concat()
         } else {
-            [self.namespace.to_vec(), suffix.to_vec()].concat()
+            [self.namespace.to_vec(), suffix.as_bytes().to_vec()].concat()
         };
         Self {
             namespace: self.namespace,
@@ -426,7 +423,7 @@ mod tests {
     #[test]
     fn test_pushs_pops() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let deque_store: DequeStore<i32> = DequeStore::new(b"test");
+        let deque_store: DequeStore<i32> = DequeStore::new("test");
         deque_store.push_front(&mut storage, &4)?;
         deque_store.push_back(&mut storage, &5)?;
         deque_store.push_front(&mut storage, &3)?;
@@ -451,7 +448,7 @@ mod tests {
     #[test]
     fn test_removes() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let deque_store: DequeStore<i32> = DequeStore::new(b"test");
+        let deque_store: DequeStore<i32> = DequeStore::new("test");
         deque_store.push_front(&mut storage, &2)?;
         deque_store.push_back(&mut storage, &3)?;
         deque_store.push_back(&mut storage, &4)?;
@@ -515,7 +512,7 @@ mod tests {
     #[test]
     fn test_iterator() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let deque_store: DequeStore<i32> = DequeStore::new(b"test");
+        let deque_store: DequeStore<i32> = DequeStore::new("test");
 
         deque_store.push_front(&mut storage, &2143)?;
         deque_store.push_back(&mut storage, &3333)?;
@@ -552,7 +549,7 @@ mod tests {
     #[test]
     fn test_reverse_iterator() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let deque_store: DequeStore<i32> = DequeStore::new(b"test");
+        let deque_store: DequeStore<i32> = DequeStore::new("test");
         deque_store.push_front(&mut storage, &2143)?;
         deque_store.push_back(&mut storage, &3412)?;
         deque_store.push_back(&mut storage, &3333)?;
@@ -596,16 +593,16 @@ mod tests {
         // Check the default behavior is Json
         let mut storage = MockStorage::new();
 
-        let deque_store: DequeStore<i32> = DequeStore::new(b"test");
+        let deque_store: DequeStore<i32> = DequeStore::new("test");
         deque_store.push_back(&mut storage, &1234)?;
 
         let key = [deque_store.as_slice(), &0_u32.to_be_bytes()].concat();
         let bytes = storage.get(&key);
-        //   assert_eq!(bytes, Some(vec![210, 4, 0, 0]));
+        // assert_eq!(bytes, Some(vec![210, 4, 0, 0]));
 
         // Check that overriding the serializer with Json works
         let mut storage = MockStorage::new();
-        let json_deque_store: DequeStore<i32, Json> = DequeStore::new(b"test2");
+        let json_deque_store: DequeStore<i32, Json> = DequeStore::new("test2");
         json_deque_store.push_back(&mut storage, &1234)?;
 
         let key = [json_deque_store.as_slice(), &0_u32.to_be_bytes()].concat();
@@ -618,7 +615,7 @@ mod tests {
     #[test]
     fn test_paging() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let append_store: DequeStore<u32> = DequeStore::new(b"test");
+        let append_store: DequeStore<u32> = DequeStore::new("test");
 
         let page_size: u32 = 5;
         let total_items: u32 = 50;
