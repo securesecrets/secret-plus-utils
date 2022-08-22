@@ -24,5 +24,3 @@ colored = "2.0.0"
 
 # Optional for now
 cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", optional = true }
-
-
