@@ -7,7 +7,7 @@ use cosmwasm_std::testing::{mock_env, MockApi, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, Addr, Api, Binary, BlockInfo, ContractResult, CosmosMsg, CustomQuery,
     Empty, Querier, QuerierResult, QuerierWrapper, QueryRequest, Storage, SystemError,
-    SystemResult,
+    SystemResult, Timestamp,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -17,7 +17,7 @@ use crate::bank::{Bank, BankKeeper, BankSudo};
 use crate::contracts::{gen_test_hash, Contract, ContractInstantiationInfo};
 use crate::executor::{AppResponse, Executor};
 use crate::module::{FailingModule, Module};
-use crate::staking::{Distribution, DistributionKeeper, StakingKeeper, Staking, StakingSudo};
+use crate::staking::{Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo};
 use crate::transactions::transactional;
 use crate::wasm::{ContractData, Wasm, WasmKeeper, WasmSudo};
 
@@ -579,11 +579,9 @@ where
     /// Lets you pass a function on a readonly version of the contract storage at address
     pub fn deps<F>(&self, address: &Addr, borrow: F) -> AnyResult<()>
     where
-        F: FnOnce(&dyn Storage)
+        F: FnOnce(&dyn Storage),
     {
-        self.read_module(|router, _, storage| {
-            router.wasm.get_storage(storage, address, borrow)
-        })
+        self.read_module(|router, _, storage| router.wasm.get_storage(storage, address, borrow))
     }
 
     // This gets a raw state dump of all key-values held by a given contract
@@ -608,6 +606,10 @@ where
 {
     pub fn set_block(&mut self, block: BlockInfo) {
         self.block = block;
+    }
+
+    pub fn set_time(&mut self, time: Timestamp) {
+        self.block.time = time;
     }
 
     // this let's use use "next block" steps that add eg. one height and 5 seconds
@@ -816,9 +818,9 @@ where
             CosmosMsg::Bank(msg) => self.bank.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Custom(msg) => self.custom.execute(api, storage, self, block, sender, msg),
             CosmosMsg::Staking(msg) => self.staking.execute(api, storage, self, block, sender, msg),
-            CosmosMsg::Distribution(msg) => {
-                self.distribution.execute(api, storage, self, block, sender, msg)
-            },
+            CosmosMsg::Distribution(msg) => self
+                .distribution
+                .execute(api, storage, self, block, sender, msg),
             _ => bail!("Cannot execute {:?}", msg),
         }
     }
@@ -1181,7 +1183,11 @@ mod test {
         // reflect count is 1
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &reflect::QueryMsg::Count {})
+            .query_wasm_smart(
+                reflect_addr.code_hash.clone(),
+                reflect_addr.address.clone(),
+                &reflect::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(0, qres.count);
 
@@ -1243,7 +1249,11 @@ mod test {
         // reflect count updated
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.code_hash, reflect_addr.address,  &reflect::QueryMsg::Count {})
+            .query_wasm_smart(
+                reflect_addr.code_hash,
+                reflect_addr.address,
+                &reflect::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(1, qres.count);
     }
@@ -1307,7 +1317,11 @@ mod test {
         // reflect count should be updated to 1
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &reflect::QueryMsg::Count {})
+            .query_wasm_smart(
+                reflect_addr.code_hash.clone(),
+                reflect_addr.address.clone(),
+                &reflect::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(1, qres.count);
 
@@ -1338,7 +1352,11 @@ mod test {
         // failure should not update reflect count
         let qres: payout::CountResponse = app
             .wrap()
-            .query_wasm_smart(reflect_addr.code_hash, reflect_addr.address, &reflect::QueryMsg::Count {})
+            .query_wasm_smart(
+                reflect_addr.code_hash,
+                reflect_addr.address,
+                &reflect::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(1, qres.count);
     }
@@ -1366,7 +1384,11 @@ mod test {
         // count is 1
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr.code_hash.clone(), payout_addr.address.clone(), &payout::QueryMsg::Count {})
+            .query_wasm_smart(
+                payout_addr.code_hash.clone(),
+                payout_addr.address.clone(),
+                &payout::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(1, count);
 
@@ -1377,7 +1399,11 @@ mod test {
         // count is 25
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr.code_hash.clone(), payout_addr.address.clone(), &payout::QueryMsg::Count {})
+            .query_wasm_smart(
+                payout_addr.code_hash.clone(),
+                payout_addr.address.clone(),
+                &payout::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(25, count);
 
@@ -1391,7 +1417,11 @@ mod test {
 
         let payout::CountResponse { count } = app
             .wrap()
-            .query_wasm_smart(payout_addr.code_hash, payout_addr.address, &payout::QueryMsg::Count {})
+            .query_wasm_smart(
+                payout_addr.code_hash,
+                payout_addr.address,
+                &payout::QueryMsg::Count {},
+            )
             .unwrap();
         assert_eq!(49, count);
     }
@@ -1570,7 +1600,11 @@ mod test {
 
         // no reply writen beforehand
         let query = reflect::QueryMsg::Reply { id: 123 };
-        let res: StdResult<Reply> = app.wrap().query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &query);
+        let res: StdResult<Reply> = app.wrap().query_wasm_smart(
+            reflect_addr.code_hash.clone(),
+            reflect_addr.address.clone(),
+            &query,
+        );
         res.unwrap_err();
 
         // reflect sends 7 eth, success
@@ -1604,7 +1638,11 @@ mod test {
         // ensure success was written
         let res: Reply = app
             .wrap()
-            .query_wasm_smart(reflect_addr.code_hash.clone(), reflect_addr.address.clone(), &query)
+            .query_wasm_smart(
+                reflect_addr.code_hash.clone(),
+                reflect_addr.address.clone(),
+                &query,
+            )
             .unwrap();
         assert_eq!(res.id, 123);
         // validate the events written in the reply blob...should just be bank transfer
@@ -1630,7 +1668,10 @@ mod test {
 
         // ensure error was written
         let query = reflect::QueryMsg::Reply { id: 456 };
-        let res: Reply = app.wrap().query_wasm_smart(reflect_addr.code_hash, reflect_addr.address,&query).unwrap();
+        let res: Reply = app
+            .wrap()
+            .query_wasm_smart(reflect_addr.code_hash, reflect_addr.address, &query)
+            .unwrap();
         assert_eq!(res.id, 456);
         assert!(res.result.is_err());
         // TODO: check error?
@@ -1776,13 +1817,8 @@ mod test {
             )
             .unwrap();
 
-        app.execute_contract(
-            owner.clone(),
-            &contract,
-            &EmptyMsg {},
-            &coins(20, "btc"),
-        )
-        .unwrap();
+        app.execute_contract(owner.clone(), &contract, &EmptyMsg {}, &coins(20, "btc"))
+            .unwrap();
 
         // Check balance of all accounts to ensure no tokens where burned or created, and they are
         // in correct places
@@ -1833,7 +1869,11 @@ mod test {
         // check beneficiary set properly
         let state: hackatom::InstantiateMsg = app
             .wrap()
-            .query_wasm_smart(contract.code_hash.clone(), contract.address.clone(), &hackatom::QueryMsg::Beneficiary {})
+            .query_wasm_smart(
+                contract.code_hash.clone(),
+                contract.address.clone(),
+                &hackatom::QueryMsg::Beneficiary {},
+            )
             .unwrap();
         assert_eq!(state.beneficiary, beneficiary);
 
@@ -1871,7 +1911,11 @@ mod test {
         // check beneficiary updated
         let state: hackatom::InstantiateMsg = app
             .wrap()
-            .query_wasm_smart(contract.code_hash, contract.address, &hackatom::QueryMsg::Beneficiary {})
+            .query_wasm_smart(
+                contract.code_hash,
+                contract.address,
+                &hackatom::QueryMsg::Beneficiary {},
+            )
             .unwrap();
         assert_eq!(state.beneficiary, random);
     }
@@ -1999,7 +2043,11 @@ mod test {
                     &contract,
                     &echo::Message {
                         data: Some("First".to_owned()),
-                        sub_msg: vec![make_echo_submsg_no_reply(contract.clone(), "Second", vec![])],
+                        sub_msg: vec![make_echo_submsg_no_reply(
+                            contract.clone(),
+                            "Second",
+                            vec![],
+                        )],
                         ..echo::Message::default()
                     },
                     &[],
@@ -2169,7 +2217,12 @@ mod test {
                                 vec![],
                                 EXECUTE_REPLY_BASE_ID + 3,
                             ),
-                            make_echo_submsg(contract.clone(), None, vec![], EXECUTE_REPLY_BASE_ID + 4),
+                            make_echo_submsg(
+                                contract.clone(),
+                                None,
+                                vec![],
+                                EXECUTE_REPLY_BASE_ID + 4,
+                            ),
                         ],
                         ..echo::Message::default()
                     },
