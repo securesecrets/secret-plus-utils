@@ -53,9 +53,9 @@ pub struct TxQueryKeyValue {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ListCodeResponse {
-    pub id: u128,
+    pub code_id: u128,
     pub creator: String,
-    pub data_hash: String,
+    pub code_hash: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -75,8 +75,18 @@ pub struct NetContract {
 }
 
 impl NetContract {
-    pub fn new(label: impl Into<String>, id: impl Into<String>, address: impl Into<String>, code_hash: impl Into<String> ) -> Self {
-        NetContract { label: label.into(), id: id.into(), address: address.into(), code_hash: code_hash.into() }
+    pub fn new(
+        label: impl Into<String>,
+        id: impl Into<String>,
+        address: impl Into<String>,
+        code_hash: impl Into<String>,
+    ) -> Self {
+        NetContract {
+            label: label.into(),
+            id: id.into(),
+            address: address.into(),
+            code_hash: code_hash.into(),
+        }
     }
 }
 

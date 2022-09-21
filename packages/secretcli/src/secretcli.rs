@@ -1,18 +1,23 @@
-use crate::{cli_types::{
-    ListCodeResponse, ListContractCode, NetContract, SignedTx, StoredContract, TxCompute, TxQuery,
-    TxResponse,
-}, utils::print_contract, constants::{SECRETCLI, STORE_GAS, GAS}};
+#[cfg(feature = "helpers")]
+use crate::deployable::Deployable;
+use crate::{
+    cli_types::{
+        ListCodeResponse, ListContractCode, NetContract, SignedTx, StoredContract, TxCompute,
+        TxQuery, TxResponse,
+    },
+    constants::{GAS, SECRETCLI, STORE_GAS},
+    utils::print_contract,
+};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use serde_json::{Result, Value};
 use std::{
-    fs::{File, create_dir},
-    io::{self, Write, BufReader, ErrorKind, Error},
+    fs::{create_dir, File},
+    io::{self, BufReader, Error, ErrorKind, Write},
+    path::Path,
     process::Command,
-    thread, time, path::Path,
+    thread, time,
 };
-#[cfg(feature = "helpers")]
-use crate::deployable::Deployable;
 
 //secretcli tx sign-doc tx_to_sign --from sign-test
 
@@ -296,8 +301,8 @@ pub fn store_and_return_contract(
     let listed_contracts = list_code()?;
 
     for item in listed_contracts {
-        if item.id.to_string() == contract.id {
-            contract.code_hash = item.data_hash;
+        if item.code_id.to_string() == contract.id {
+            contract.code_hash = item.code_hash;
             break;
         }
     }
@@ -371,8 +376,8 @@ pub fn init<Message: serde::Serialize>(
 
     // Find the code_hash
     for item in listed_contracts {
-        if item.id.to_string() == contract.id {
-            contract.code_hash = item.data_hash;
+        if item.code_id.to_string() == contract.id {
+            contract.code_hash = item.code_hash;
             break;
         }
     }
@@ -460,7 +465,15 @@ pub fn handle<Message: serde::Serialize + Clone>(
     report: &mut Vec<Report>,
     max_tries: Option<i32>,
 ) -> Result<(TxCompute, TxQuery)> {
-    let tx = execute_contract(contract, msg.clone(), sender, gas, backend, amount, max_tries)?;
+    let tx = execute_contract(
+        contract,
+        msg.clone(),
+        sender,
+        gas,
+        backend,
+        amount,
+        max_tries,
+    )?;
 
     let computed_response = compute_hash(tx.txhash.clone())?;
     let queried_response = query_hash(tx.txhash)?;
@@ -590,8 +603,8 @@ pub trait TestInit: serde::Serialize {
         let listed_contracts = list_code()?;
 
         for item in listed_contracts {
-            if item.id.to_string() == contract.id {
-                contract.code_hash = item.data_hash;
+            if item.code_id.to_string() == contract.id {
+                contract.code_hash = item.code_hash;
                 break;
             }
         }
@@ -614,8 +627,11 @@ pub trait TestInit: serde::Serialize {
             self,
             contract.file(),
             generate_label(10).as_str(),
-            sender.unwrap_or_else(|| contract.default_user()), STORE_GAS.into(), GAS.into(),
-            Some(backend.unwrap_or_else(|| contract.backend())), name
+            sender.unwrap_or_else(|| contract.default_user()),
+            STORE_GAS.into(),
+            GAS.into(),
+            Some(backend.unwrap_or_else(|| contract.backend())),
+            name,
         )?;
 
         contract.set_info(&info);
@@ -685,8 +701,8 @@ pub fn init_cache<Message: serde::Serialize>(
             let listed_contracts = list_code()?;
 
             for item in listed_contracts {
-                if item.id.to_string() == contract.id {
-                    contract.code_hash = item.data_hash;
+                if item.code_id.to_string() == contract.id {
+                    contract.code_hash = item.code_hash;
                     break;
                 }
             }
@@ -739,14 +755,15 @@ pub trait TestHandle: serde::Serialize {
         amount: Option<&str>,
         report: &mut Vec<Report>,
     ) -> Result<(TxCompute, TxQuery)> {
-
         handle(
             self,
             contract.get_info(),
             sender.unwrap_or_else(|| contract.default_user()),
             Some(gas.unwrap_or(GAS)),
             Some(backend.unwrap_or_else(|| contract.backend())),
-            amount, report, None
+            amount,
+            report,
+            None,
         )
     }
 }
