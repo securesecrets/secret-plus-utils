@@ -12,9 +12,26 @@ pub struct TxResponse {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TxCompute {
-    //#[serde(rename="key", Debug, Clone)]
-    //pub msg_key: String,
+    pub answers: Vec<TxAnswer>,
+    pub output_logs: Vec<TxOutputLog>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TxAnswer {
+    pub r#type: String,
     pub input: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TxOutputLog {
+    pub r#type: String,
+    pub attributes: Vec<TxAttribute>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TxAttribute {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
