@@ -1,8 +1,8 @@
-use colored::*;
 use crate::{
     cli_types::{NetContract, TxQuery},
-    secretcli::{test_contract_handle, init_cache},
+    secretcli::{init_cache, test_contract_handle},
 };
+use colored::*;
 use serde::Serialize;
 use std::fmt::Display;
 
@@ -79,7 +79,7 @@ pub fn test_contract_handle_and_debug<Message: serde::Serialize>(
     match result {
         Ok((compute, query)) => {
             println!("{} {}", query.gas_used, query.gas_wanted);
-            println!("ComputeResponse {}", compute.input);
+            println!("ComputeResponse {}", compute.answers[0]);
         }
         Err(err) => {
             println!("{}", err);
@@ -91,12 +91,11 @@ pub fn assert_handle_failure(tx_query: TxQuery) -> bool {
     tx_query.raw_log.contains("failed to execute message")
 }
 
-
 pub const LABEL_ALPHABET: [char; 62] = [
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
-    'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-    'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+    'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B',
+    'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+    'V', 'W', 'X', 'Y', 'Z',
 ];
 
 pub fn generate_label(size: usize) -> String {
