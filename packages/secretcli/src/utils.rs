@@ -79,7 +79,7 @@ pub fn test_contract_handle_and_debug<Message: serde::Serialize>(
     match result {
         Ok((compute, query)) => {
             println!("{} {}", query.gas_used, query.gas_wanted);
-            println!("ComputeResponse {}", compute.answers[0]);
+            println!("ComputeResponse {}", compute.answers[0].input);
         }
         Err(err) => {
             println!("{}", err);
