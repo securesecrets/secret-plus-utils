@@ -18,6 +18,7 @@ mod path;
 mod prefix;
 mod serialization;
 mod snapshot;
+mod traits;
 
 pub use append_store::AppendStore;
 #[cfg(feature = "iterator")]
@@ -41,6 +42,7 @@ pub use keys::{Key, Prefixer, PrimaryKey};
 pub use keys_old::IntKeyOld;
 pub use map::Map;
 pub use path::Path;
+pub use traits::{GenericItemStorage, GenericMapStorage, ItemStorage, MapStorage, NaiveItemStorage, NaiveMapStorage};
 #[cfg(feature = "iterator")]
 pub use prefix::{range_with_prefix, Prefix};
 pub use serialization::{Bincode2, Json, Serde};
