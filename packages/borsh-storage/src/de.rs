@@ -154,7 +154,7 @@ impl<T: KeyDeserialize, U: KeyDeserialize, V: KeyDeserialize> KeyDeserialize for
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::PrimaryKey;
+    use crate::keys::PrimaryKey;
 
     const BYTES: &[u8] = b"Hello";
     const STRING: &str = "Hello";

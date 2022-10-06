@@ -2,7 +2,7 @@ use better_secret_math::U256;
 use borsh::{BorshDeserialize, BorshSerialize};
 use cosmwasm_std::testing::MockStorage;
 use criterion::{black_box, criterion_group, Criterion};
-use secret_borsh_storage::Item as BorshItem;
+use secret_borsh_storage::BorshItem;
 use serde::{Deserialize, Serialize};
 
 use secret_storage_plus::{Bincode2, Item, Json, Serde};

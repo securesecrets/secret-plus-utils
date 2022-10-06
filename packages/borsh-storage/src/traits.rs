@@ -1,6 +1,6 @@
 use std::any::type_name;
 
-use crate::{Item, Map, PrimaryKey};
+use crate::{item::Item, keys::PrimaryKey, map::Map};
 use borsh::{BorshDeserialize, BorshSerialize};
 use cosmwasm_std::{StdError, StdResult, Storage};
 
