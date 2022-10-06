@@ -39,7 +39,7 @@ impl BigChungis {
         BigChungis {
             owner: "iaudnfuafbuwiafnawiuofngsgjknsjgnsogvnsgjnaigojanfasjknfakjnakfjanfkasfnafkjsafnajkfnajfanfka".to_string(),
             address: "iaudnfuafbuwiafnawiuofngsgjknsjgnsogvnsgjnaigojanfasjknfakjnakfjanfkasfnafkjsafnajkfnajfanfka".to_string(),
-            b: [U256::MAX; 2],
+            b: [U256::new(1029781591238083739u128); 2],
             i: [U256::MAX; 2],
             g: [U256::MAX; 2],
             chungis: [U256::MAX; 10],
