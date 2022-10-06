@@ -1,5 +1,5 @@
-use serde::{de::DeserializeOwned, Serialize};
 use cosmwasm_std::StdResult;
+use serde::{de::DeserializeOwned, Serialize};
 
 mod bincode2;
 mod json;
