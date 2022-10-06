@@ -1,0 +1,28 @@
+[package]
+name = "secret-borsh-storage"
+version = "0.13.4"
+authors = [
+  "hydropump3 <3ki2fiay@anonaddy.me>",
+]
+edition = "2018"
+description = "Enhanced storage engines for Secret Network using [borsh](https://github.com/near/borsh-rs)."
+license = "Apache-2.0"
+
+[features]
+default = []
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+# See https://bheisler.github.io/criterion.rs/book/faq.html#cargo-bench-gives-unrecognized-option-errors-for-valid-command-line-options
+bench = false
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+schemars = "0.8.1"
+borsh = "0.9.3"
+
+[dev-dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+rstest = "0.15.0"
+rstest_reuse = "0.4.0"
+rand = { version = "0.8.5", default-features = false }

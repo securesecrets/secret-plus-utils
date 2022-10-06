@@ -3,24 +3,17 @@
 //!
 //! This is achieved by storing each item in a separate storage entry. A special key is reserved
 //! for storing the length of the collection so far.
+use borsh::{BorshDeserialize, BorshSerialize};
+use cosmwasm_std::{StdError, StdResult, Storage};
 use std::any::type_name;
 use std::convert::TryInto;
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
-use serde::{de::DeserializeOwned, Serialize};
-
-use crate::{Json, Serde};
-
-use cosmwasm_std::{StdError, StdResult, Storage};
-
+use crate::traits::Borsh;
 const LEN_KEY: &[u8] = b"len";
 
-pub struct AppendStore<'a, T, Ser = Json>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
+pub struct AppendStore<'a, T: BorshSerialize + BorshDeserialize> {
     /// prefix of the newly constructed Storage
     namespace: &'a [u8],
     /// needed if any suffixes were added to the original namespace.
@@ -28,10 +21,9 @@ where
     prefix: Option<Vec<u8>>,
     length: Mutex<Option<u32>>,
     item_type: PhantomData<T>,
-    serialization_type: PhantomData<Ser>,
 }
 
-impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
+impl<'a, T: BorshSerialize + BorshDeserialize> AppendStore<'a, T> {
     /// constructor
     pub const fn new(prefix: &'a str) -> Self {
         Self {
@@ -39,7 +31,6 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
             prefix: None,
             length: Mutex::new(None),
             item_type: PhantomData,
-            serialization_type: PhantomData,
         }
     }
     /// This is used to produce a new AppendListStorage. This can be used when you want to associate an AppendListStorage to each user
@@ -55,12 +46,11 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
             prefix: Some(prefix),
             length: Mutex::new(None),
             item_type: self.item_type,
-            serialization_type: self.serialization_type,
         }
     }
 }
 
-impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
+impl<'a, T: BorshSerialize + BorshDeserialize> AppendStore<'a, T> {
     /// gets the length from storage, and otherwise sets it to 0
     pub fn get_len(&self, storage: &dyn Storage) -> StdResult<u32> {
         let mut may_len = self.length.lock().unwrap();
@@ -165,7 +155,7 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
         item
     }
     /// Returns a readonly iterator
-    pub fn iter(&self, storage: &'a dyn Storage) -> StdResult<AppendStoreIter<T, Ser>> {
+    pub fn iter(&self, storage: &'a dyn Storage) -> StdResult<AppendStoreIter<T>> {
         let len = self.get_len(storage)?;
         let iter = AppendStoreIter::new(self, storage, 0, len);
         Ok(iter)
@@ -179,19 +169,18 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
     }
 }
 
-impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> Clone for AppendStore<'a, T, Ser> {
+impl<'a, T: BorshSerialize + BorshDeserialize> Clone for AppendStore<'a, T> {
     fn clone(&self) -> Self {
         Self {
             namespace: self.namespace,
             prefix: self.prefix.clone(),
             length: Mutex::new(None),
             item_type: self.item_type,
-            serialization_type: self.serialization_type,
         }
     }
 }
 
-impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
+impl<'a, T: BorshSerialize + BorshDeserialize> AppendStore<'a, T> {
     fn as_slice(&self) -> &[u8] {
         if let Some(prefix) = &self.prefix {
             prefix
@@ -209,7 +198,7 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
     /// * `key` - a byte slice representing the key to access the stored item
     fn load_impl(&self, storage: &dyn Storage, key: &[u8]) -> StdResult<T> {
         let prefixed_key = [self.as_slice(), key].concat();
-        Ser::deserialize(
+        Borsh::deserialize(
             &storage
                 .get(&prefixed_key)
                 .ok_or_else(|| StdError::not_found(type_name::<T>()))?,
@@ -225,31 +214,23 @@ impl<'a, T: Serialize + DeserializeOwned, Ser: Serde> AppendStore<'a, T, Ser> {
     /// * `value` - a reference to the item to store
     fn save_impl(&self, storage: &mut dyn Storage, key: &[u8], value: &T) -> StdResult<()> {
         let prefixed_key = [self.as_slice(), key].concat();
-        storage.set(&prefixed_key, &Ser::serialize(value)?);
+        storage.set(&prefixed_key, &Borsh::serialize(value)?);
         Ok(())
     }
 }
 
 /// An iterator over the contents of the append store.
-pub struct AppendStoreIter<'a, T, Ser>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
-    append_store: &'a AppendStore<'a, T, Ser>,
+pub struct AppendStoreIter<'a, T: BorshSerialize + BorshDeserialize> {
+    append_store: &'a AppendStore<'a, T>,
     storage: &'a dyn Storage,
     start: u32,
     end: u32,
 }
 
-impl<'a, T, Ser> AppendStoreIter<'a, T, Ser>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
+impl<'a, T: BorshSerialize + BorshDeserialize> AppendStoreIter<'a, T> {
     /// constructor
     pub fn new(
-        append_store: &'a AppendStore<'a, T, Ser>,
+        append_store: &'a AppendStore<'a, T>,
         storage: &'a dyn Storage,
         start: u32,
         end: u32,
@@ -263,11 +244,7 @@ where
     }
 }
 
-impl<'a, T, Ser> Iterator for AppendStoreIter<'a, T, Ser>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
+impl<'a, T: BorshDeserialize + BorshSerialize> Iterator for AppendStoreIter<'a, T> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -297,11 +274,7 @@ where
     }
 }
 
-impl<'a, T, Ser> DoubleEndedIterator for AppendStoreIter<'a, T, Ser>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
+impl<'a, T: BorshDeserialize + BorshSerialize> DoubleEndedIterator for AppendStoreIter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {
             return None;
@@ -324,19 +297,12 @@ where
 }
 
 // This enables writing `append_store.iter().skip(n).rev()`
-impl<'a, T, Ser> ExactSizeIterator for AppendStoreIter<'a, T, Ser>
-where
-    T: Serialize + DeserializeOwned,
-    Ser: Serde,
-{
-}
+impl<'a, T: BorshDeserialize + BorshSerialize> ExactSizeIterator for AppendStoreIter<'a, T> {}
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::testing::MockStorage;
-
     use super::*;
-    use crate::Json;
+    use cosmwasm_std::testing::MockStorage;
 
     #[test]
     fn test_push_pop() -> StdResult<()> {
@@ -464,7 +430,7 @@ mod tests {
     #[test]
     fn test_json_push_pop() -> StdResult<()> {
         let mut storage = MockStorage::new();
-        let append_store: AppendStore<i32, Json> = AppendStore::new("test");
+        let append_store: AppendStore<i32> = AppendStore::new("test");
         append_store.push(&mut storage, &1234)?;
         append_store.push(&mut storage, &2143)?;
         append_store.push(&mut storage, &3412)?;
@@ -581,7 +547,6 @@ mod tests {
 
     #[test]
     fn test_serializations() -> StdResult<()> {
-        // Check the default behavior is Json
         let mut storage = MockStorage::new();
 
         let append_store: AppendStore<i32> = AppendStore::new("test");
@@ -589,16 +554,7 @@ mod tests {
 
         let key = [append_store.as_slice(), &0_u32.to_be_bytes()].concat();
         let bytes = storage.get(&key);
-        assert_eq!(bytes, Some(b"1234".to_vec()));
-
-        // Check that overriding the serializer with Json works
-        let mut storage = MockStorage::new();
-        let json_append_store: AppendStore<i32, Json> = AppendStore::new("test2");
-        json_append_store.push(&mut storage, &1234)?;
-
-        let key = [json_append_store.as_slice(), &0_u32.to_be_bytes()].concat();
-        let bytes = storage.get(&key);
-        assert_eq!(bytes, Some(b"1234".to_vec()));
+        assert_eq!(bytes, Some(vec![210, 4, 0, 0]));
 
         Ok(())
     }
