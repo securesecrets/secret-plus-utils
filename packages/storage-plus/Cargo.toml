@@ -31,6 +31,7 @@ bincode2 = { version = "2.0.1" }
 [dev-dependencies]
 better-secret-math = { git = "https://github.com/securesecrets/better-secret-math" }
 secret-borsh-storage = { path = "../borsh-storage" }
+borsh = "0.9.3"
 criterion = { version = "0.3", features = [ "html_reports" ] }
 rstest = "0.15.0"
 rstest_reuse = "0.4.0"

@@ -1285,6 +1285,7 @@ version = "0.13.4"
 dependencies = [
  "better-secret-math",
  "bincode2",
+ "borsh",
  "cosmwasm-std",
  "criterion",
  "rand",
