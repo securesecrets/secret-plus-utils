@@ -90,7 +90,7 @@ checksum = "ea2b2456fd614d856680dcd9fcc660a51a820fa09daef2e49772b56a193c8474"
 [[package]]
 name = "better-secret-math"
 version = "0.1.0"
-source = "git+https://github.com/securesecrets/better-secret-math?tag=v0.1.1#5f98a6e16c9fcd73a3ca3df9b5f9fc475e1d27de"
+source = "git+https://github.com/securesecrets/better-secret-math?tag=v0.1.2#7a139164dc157367c89c9d2a840ced45a484aad5"
 dependencies = [
  "borsh",
  "btr-macros",
@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "btr-macros"
 version = "0.1.0"
-source = "git+https://github.com/securesecrets/better-secret-math?tag=v0.1.1#5f98a6e16c9fcd73a3ca3df9b5f9fc475e1d27de"
+source = "git+https://github.com/securesecrets/better-secret-math?tag=v0.1.2#7a139164dc157367c89c9d2a840ced45a484aad5"
 dependencies = [
  "paste",
  "proc-macro2",
@@ -261,8 +261,9 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-schema"
-version = "1.1.4"
-source = "git+https://github.com/CosmWasm/cosmwasm#00b136590f6a52ee7f7dca831ca162e8d7cbc0a3"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a227cfeb9a7152b26a354b1c990e930e962f75fd68f57ab5ae2ef888c8524292"
 dependencies = [
  "cosmwasm-schema-derive",
  "schemars",
@@ -273,8 +274,9 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-schema-derive"
-version = "1.1.4"
-source = "git+https://github.com/CosmWasm/cosmwasm#00b136590f6a52ee7f7dca831ca162e8d7cbc0a3"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3626cb42eef870de67f791e873711255325224d86f281bf628c42abd295f3a14"
 dependencies = [
  "proc-macro2",
  "quote",
