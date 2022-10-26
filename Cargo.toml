@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-  "packages/secretcli",
   "packages/multi-test",
   "packages/storage-plus",
   "packages/borsh-storage",
