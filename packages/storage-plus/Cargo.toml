@@ -23,7 +23,7 @@ crate-type = ["cdylib", "rlib"]
 bench = false
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", package = "secret-cosmwasm-std" }
+cosmwasm-std = { package = "secret-cosmwasm-std" }
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 bincode2 = { version = "2.0.1" }
