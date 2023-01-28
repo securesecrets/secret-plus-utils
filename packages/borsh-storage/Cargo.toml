@@ -19,7 +19,7 @@ bench = false
 [dependencies]
 cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.0.0" }
 schemars = "0.8.1"
-borsh = "0.9.3"
+borsh = "0.10.0"
 
 [dev-dependencies]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
