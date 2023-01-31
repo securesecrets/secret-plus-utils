@@ -1341,7 +1341,7 @@ dependencies = [
 
 [[package]]
 name = "secret-multi-test"
-version = "0.16.2"
+version = "0.13.4"
 dependencies = [
  "anyhow",
  "derivative",
