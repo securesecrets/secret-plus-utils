@@ -8,6 +8,8 @@ This repo contains some packages from [cw-plus](https://github.com/CosmWasm/cw-p
 secret-storage-plus = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
 secret-multi-test = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
 secret-utils = { git = "https://github.com/securesecrets/secret-plus-utils", version = "0.13.4" }
+secret-cw-controllers = { git = "https://github.com/securesecrets/secret-plus-utils" }
+secret-cw2 = { git = "https://github.com/securesecrets/secret-plus-utils" }
 ```
 
 ## Licenses

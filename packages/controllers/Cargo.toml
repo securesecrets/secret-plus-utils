@@ -1,0 +1,20 @@
+[package]
+name = "secret-cw-controllers"
+version = "1.0.1"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2021"
+description = "Common controllers we can reuse in many contracts"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-plus"
+homepage = "https://cosmwasm.com"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.0.0" }
+cosmwasm-schema = "1.1.5"
+cw-utils = { package = "secret-utils", path = "../../packages/utils" }
+cw-storage-plus = { package = "secret-storage-plus", path = "../../packages/storage-plus" }
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.21" }

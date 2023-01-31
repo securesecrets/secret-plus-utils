@@ -2,11 +2,11 @@ use anyhow::{bail, Result as AnyResult};
 use itertools::Itertools;
 use schemars::JsonSchema;
 
+use crate::prefixed_storage::{prefixed, prefixed_read};
 use cosmwasm_std::{
     coin, to_binary, Addr, AllBalanceResponse, Api, BalanceResponse, BankMsg, BankQuery, Binary,
     BlockInfo, Coin, Event, Querier, Storage,
 };
-use cosmwasm_storage::{prefixed, prefixed_read};
 use secret_storage_plus::Map;
 use secret_utils::NativeBalance;
 

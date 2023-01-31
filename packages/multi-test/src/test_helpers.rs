@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use secret_storage_plus::Item;
 
 pub mod contracts;
+pub mod mocks;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EmptyMsg {}

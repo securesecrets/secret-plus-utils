@@ -5,6 +5,8 @@ members = [
   "packages/storage-plus",
   "packages/borsh-storage",
   "packages/utils",
+  "packages/controllers",
+  "packages/cw2",
 ]
 
 [profile.release]

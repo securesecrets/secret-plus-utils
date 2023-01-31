@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Deref;
 
+use crate::prefixed_storage::{prefixed, prefixed_read, PrefixedStorage, ReadonlyPrefixedStorage};
 use cosmwasm_std::{
     to_binary,
     Addr,
@@ -33,7 +34,6 @@ use cosmwasm_std::{
     WasmMsg,
     WasmQuery,
 };
-use cosmwasm_storage::{prefixed, prefixed_read, PrefixedStorage, ReadonlyPrefixedStorage};
 use nanoid::nanoid;
 use prost::Message;
 use schemars::JsonSchema;
@@ -273,14 +273,15 @@ impl<ExecC, QueryC> WasmKeeper<ExecC, QueryC> {
         address: &Addr,
         borrow: F,
     ) -> AnyResult<()>
-    where F: FnOnce(&dyn Storage)
+    where
+        F: FnOnce(&dyn Storage),
     {
         // We double-namespace this, once from global storage -> wasm_storage
         // then from wasm_storage -> the contracts subspace
         let namespace = self.contract_namespace(address);
         let storage = ReadonlyPrefixedStorage::multilevel(storage, &[NAMESPACE_WASM, &namespace]);
         borrow(&storage);
-        return Ok(())
+        return Ok(());
     }
 
     fn verify_attributes(attributes: &[Attribute]) -> AnyResult<()> {
@@ -955,36 +956,14 @@ fn execute_response(data: Option<Binary>) -> Option<Binary> {
 
 #[cfg(test)]
 mod test {
+    use crate::test_helpers::contracts::{error, payout};
+    use crate::test_helpers::mocks::mock_router;
+    use crate::transactions::StorageTransaction;
     use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{coin, from_slice, to_vec, BankMsg, Coin, CosmosMsg, Empty, StdError};
 
-    use crate::app::Router;
-    use crate::bank::BankKeeper;
-    use crate::module::FailingModule;
-    use crate::test_helpers::contracts::{error, payout};
-    use crate::transactions::StorageTransaction;
-
     use super::*;
     use crate::staking::{DistributionKeeper, StakingKeeper};
-
-    /// Type alias for default build `Router` to make its reference in typical scenario
-    type BasicRouter<ExecC = Empty, QueryC = Empty> = Router<
-        BankKeeper,
-        FailingModule<ExecC, QueryC, Empty>,
-        WasmKeeper<ExecC, QueryC>,
-        StakingKeeper,
-        DistributionKeeper,
-    >;
-
-    fn mock_router() -> BasicRouter {
-        Router {
-            wasm: WasmKeeper::new(),
-            bank: BankKeeper::new(),
-            custom: FailingModule::new(),
-            staking: StakingKeeper::new(),
-            distribution: DistributionKeeper::new(),
-        }
-    }
 
     #[test]
     fn register_contract() {

@@ -1,6 +1,6 @@
 [package]
 name = "secret-multi-test"
-version = "0.13.4"
+version = "0.16.2"
 authors = [
   "Ethan Frey <ethanfrey@users.noreply.github.com>",
 
@@ -28,12 +28,11 @@ backtrace = ["anyhow/backtrace"]
 nanoid = "0.4.0"
 secret-utils = { path = "../../packages/utils", version = "0.13.4" }
 secret-storage-plus = { path = "../../packages/storage-plus", version = "0.13.4"}
-cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.0.0", features = ["staking"] }
-cosmwasm-storage = { package = "secret-cosmwasm-storage", version = "1.0.0" }
+cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.0.0", features = ["staking", "stargate"] }
 itertools = "0.10.1"
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 prost = "0.9"
-anyhow = "1"
+anyhow = "1.0.41"
 thiserror = "1"
 derivative = "2"
