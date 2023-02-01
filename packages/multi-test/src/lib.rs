@@ -27,7 +27,7 @@ pub use crate::app::{
     SudoMsg,
 };
 pub use crate::bank::{Bank, BankKeeper, BankSudo};
-pub use crate::contracts::{Contract, ContractWrapper};
+pub use crate::contracts::{Contract, ContractInstantiationInfo, ContractWrapper};
 pub use crate::executor::{AppResponse, Executor};
 pub use crate::ibc::Ibc;
 pub use crate::module::{FailingModule, Module};
