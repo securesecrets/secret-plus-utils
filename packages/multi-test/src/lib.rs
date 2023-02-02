@@ -6,6 +6,7 @@
 //!
 //! To understand the design of this module, please refer to `../DESIGN.md`
 
+#[cfg(not(target_arch = "wasm32"))]
 mod app;
 mod bank;
 #[allow(clippy::type_complexity)]
@@ -20,17 +21,23 @@ mod prefixed_storage;
 mod staking;
 mod test_helpers;
 mod transactions;
+#[cfg(not(target_arch = "wasm32"))]
 mod wasm;
 
-pub use crate::app::{
-    custom_app, next_block, App, AppBuilder, BasicApp, BasicAppBuilder, CosmosRouter, Router,
-    SudoMsg,
-};
+mod re_exports {
+    pub use crate::app::{
+        custom_app, next_block, App, AppBuilder, BasicApp, BasicAppBuilder, CosmosRouter, Router,
+        SudoMsg,
+    };
+    pub use crate::wasm::{Wasm, WasmKeeper, WasmSudo};
+}
+
 pub use crate::bank::{Bank, BankKeeper, BankSudo};
 pub use crate::contracts::{Contract, ContractInstantiationInfo, ContractWrapper};
 pub use crate::executor::{AppResponse, Executor};
 pub use crate::ibc::Ibc;
 pub use crate::module::{FailingModule, Module};
 pub use crate::staking::{Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo};
-pub use crate::wasm::{Wasm, WasmKeeper, WasmSudo};
 pub use nanoid;
+#[cfg(not(target_arch = "wasm32"))]
+pub use re_exports::*;
