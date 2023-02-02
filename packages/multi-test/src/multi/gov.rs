@@ -1,6 +1,6 @@
 use cosmwasm_std::{Empty, GovMsg};
 
-use crate::{FailingModule, Module};
+use crate::multi::{FailingModule, Module};
 
 pub trait Gov: Module<ExecT = GovMsg, QueryT = Empty, SudoT = Empty> {}
 
@@ -10,10 +10,9 @@ impl Gov for FailingModule<GovMsg, Empty, Empty> {}
 mod test {
     use cosmwasm_std::{Addr, Binary, Empty, GovMsg};
 
-    use crate::test_helpers::contracts::stargate::{contract, ExecMsg};
-    use crate::{App, AppBuilder, AppResponse, Executor, Module};
-
-    use super::Gov;
+    use crate::multi::gov::Gov;
+    use crate::multi::test_helpers::contracts::stargate::{contract, ExecMsg};
+    use crate::multi::{App, AppBuilder, AppResponse, Executor, Module};
 
     struct AcceptingModule;
 

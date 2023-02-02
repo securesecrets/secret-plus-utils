@@ -3,7 +3,7 @@ use cosmwasm_std::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{Contract, ContractWrapper};
+use crate::multi::{Contract, ContractWrapper};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecMsg {

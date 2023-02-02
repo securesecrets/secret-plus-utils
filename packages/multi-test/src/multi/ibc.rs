@@ -1,6 +1,6 @@
 use cosmwasm_std::{Empty, IbcMsg, IbcQuery};
 
-use crate::{FailingModule, Module};
+use crate::multi::{FailingModule, Module};
 
 pub trait Ibc: Module<ExecT = IbcMsg, QueryT = IbcQuery, SudoT = Empty> {}
 
@@ -10,10 +10,10 @@ impl Ibc for FailingModule<IbcMsg, IbcQuery, Empty> {}
 mod test {
     use cosmwasm_std::{Addr, Binary, Empty, IbcMsg, IbcQuery};
 
-    use crate::test_helpers::contracts::stargate::{contract, ExecMsg};
-    use crate::{App, AppBuilder, AppResponse, Executor, Module};
+    use crate::multi::test_helpers::contracts::stargate::{contract, ExecMsg};
+    use crate::multi::{App, AppBuilder, AppResponse, Executor, Module};
 
-    use super::Ibc;
+    use crate::multi::Ibc;
 
     struct AcceptingModule;
 

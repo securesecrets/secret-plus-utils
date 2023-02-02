@@ -6,7 +6,7 @@ use cosmwasm_std::{
 use secret_storage_plus::Item;
 use serde::{Deserialize, Serialize};
 
-use crate::{test_helpers::EmptyMsg, Contract, ContractWrapper};
+use crate::multi::{test_helpers::EmptyMsg, Contract, ContractWrapper};
 use schemars::JsonSchema;
 use std::fmt;
 

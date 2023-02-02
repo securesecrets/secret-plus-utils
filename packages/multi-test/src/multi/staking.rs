@@ -8,7 +8,7 @@ use cosmwasm_std::{
 use schemars::JsonSchema;
 use secret_storage_plus::Item;
 
-use crate::{
+use crate::multi::{
     app::{CosmosRouter, Router},
     bank::{BankKeeper, BankSudo},
     executor::AppResponse,
@@ -464,11 +464,8 @@ impl Module for DistributionKeeper {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    use crate::{
-        app::{MockRouter, Router},
+    use crate::multi::{
         bank::{Bank, BankKeeper, BankSudo},
-        module::FailingModule,
         test_helpers::mocks::{mock_router, BasicRouter},
         wasm::WasmKeeper,
     };
