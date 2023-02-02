@@ -22,17 +22,15 @@ pub(crate) mod test_helpers;
 pub(crate) mod transactions;
 pub(crate) mod wasm;
 
-pub use crate::multi::app::{
+pub use crate::app::{
     custom_app, next_block, App, AppBuilder, BasicApp, BasicAppBuilder, CosmosRouter, Router,
     SudoMsg,
 };
-pub use crate::multi::bank::{Bank, BankKeeper, BankSudo};
-pub use crate::multi::contracts::{Contract, ContractInstantiationInfo, ContractWrapper};
-pub use crate::multi::executor::{AppResponse, Executor};
-pub use crate::multi::ibc::Ibc;
-pub use crate::multi::module::{FailingModule, Module};
-pub use crate::multi::staking::{
-    Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo,
-};
-pub use crate::multi::wasm::{Wasm, WasmKeeper, WasmSudo};
+pub use crate::bank::{Bank, BankKeeper, BankSudo};
+pub use crate::contracts::{Contract, ContractInstantiationInfo, ContractWrapper};
+pub use crate::executor::{AppResponse, Executor};
+pub use crate::ibc::Ibc;
+pub use crate::module::{FailingModule, Module};
+pub use crate::staking::{Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo};
+pub use crate::wasm::{Wasm, WasmKeeper, WasmSudo};
 pub use nanoid;

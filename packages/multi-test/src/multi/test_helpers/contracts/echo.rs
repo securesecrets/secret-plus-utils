@@ -9,7 +9,7 @@ use cosmwasm_std::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::multi::{test_helpers::EmptyMsg, Contract, ContractWrapper};
+use crate::{test_helpers::EmptyMsg, Contract, ContractWrapper};
 use schemars::JsonSchema;
 use std::fmt::Debug;
 

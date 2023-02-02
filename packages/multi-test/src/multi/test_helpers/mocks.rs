@@ -1,6 +1,6 @@
 use cosmwasm_std::{Empty, GovMsg, IbcMsg, IbcQuery};
 
-use crate::multi::{
+use crate::{
     BankKeeper, DistributionKeeper, FailingModule, Router, Staking, StakingKeeper, WasmKeeper,
 };
 

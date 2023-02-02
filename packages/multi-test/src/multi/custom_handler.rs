@@ -6,8 +6,8 @@ use std::rc::Rc;
 
 use cosmwasm_std::{Addr, Api, Binary, BlockInfo, Empty, Querier, Storage};
 
-use crate::multi::app::CosmosRouter;
-use crate::multi::{AppResponse, Module};
+use crate::app::CosmosRouter;
+use crate::{AppResponse, Module};
 
 /// Internal state of `CachingCustomHandler` wrapping internal mutability so it is not exposed to
 /// user. Those have to be shared internal state, as after mock is passed to app it is not

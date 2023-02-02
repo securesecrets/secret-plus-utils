@@ -5,9 +5,9 @@ use cosmwasm_std::{
 };
 use secret_storage_plus::Map;
 
-use crate::multi::contracts::{Contract, ContractWrapper};
-use crate::multi::test_helpers::contracts::payout;
-use crate::multi::test_helpers::{CustomMsg, EmptyMsg, COUNT};
+use crate::contracts::{Contract, ContractWrapper};
+use crate::test_helpers::contracts::payout;
+use crate::test_helpers::{CustomMsg, EmptyMsg, COUNT};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Message {

@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use anyhow::Result as AnyResult;
 
-use crate::multi::contracts::ContractInstantiationInfo;
+use crate::contracts::ContractInstantiationInfo;
 
 #[derive(Default, Clone, Debug)]
 pub struct AppResponse {

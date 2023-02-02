@@ -13,17 +13,15 @@ use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::multi::bank::{Bank, BankKeeper, BankSudo};
-use crate::multi::contracts::{gen_test_hash, Contract, ContractInstantiationInfo};
-use crate::multi::executor::{AppResponse, Executor};
-use crate::multi::gov::Gov;
-use crate::multi::module::{FailingModule, Module};
-use crate::multi::staking::{
-    Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo,
-};
-use crate::multi::transactions::transactional;
-use crate::multi::wasm::{ContractData, Wasm, WasmKeeper, WasmSudo};
-use crate::multi::Ibc;
+use crate::bank::{Bank, BankKeeper, BankSudo};
+use crate::contracts::{gen_test_hash, Contract, ContractInstantiationInfo};
+use crate::executor::{AppResponse, Executor};
+use crate::gov::Gov;
+use crate::module::{FailingModule, Module};
+use crate::staking::{Distribution, DistributionKeeper, Staking, StakingKeeper, StakingSudo};
+use crate::transactions::transactional;
+use crate::wasm::{ContractData, Wasm, WasmKeeper, WasmSudo};
+use crate::Ibc;
 
 pub fn next_block(block: &mut BlockInfo) {
     block.time = block.time.plus_seconds(5);
@@ -1126,10 +1124,10 @@ mod test {
         OverflowError, OverflowOperation, Reply, StdError, StdResult, SubMsg, WasmMsg,
     };
 
-    use crate::multi::error::Error;
-    use crate::multi::test_helpers::contracts::{caller, echo, error, hackatom, payout, reflect};
-    use crate::multi::test_helpers::{CustomMsg, EmptyMsg};
-    use crate::multi::transactions::StorageTransaction;
+    use crate::error::Error;
+    use crate::test_helpers::contracts::{caller, echo, error, hackatom, payout, reflect};
+    use crate::test_helpers::{CustomMsg, EmptyMsg};
+    use crate::transactions::StorageTransaction;
 
     fn get_balance<BankT, ApiT, StorageT, CustomT, WasmT>(
         app: &App<BankT, ApiT, StorageT, CustomT, WasmT>,
@@ -1586,7 +1584,7 @@ mod test {
         use secret_storage_plus::Item;
         use serde::{Deserialize, Serialize};
 
-        use crate::multi::Executor;
+        use crate::Executor;
 
         const LOTTERY: Item<Coin> = Item::new("lottery");
         const PITY: Item<Coin> = Item::new("pity");
@@ -2662,7 +2660,7 @@ mod test {
 
     mod custom_messages {
         use super::*;
-        use crate::multi::custom_handler::CachingCustomHandler;
+        use crate::custom_handler::CachingCustomHandler;
 
         #[test]
         fn triggering_custom_msg() {
@@ -2707,8 +2705,8 @@ mod test {
 
     // Not sure if this works or if it will even be used because of Secret Network encryption.
     // mod protobuf_wrapped_data {
-    //     use crate::multi::*;
-    //     use crate::multi::test_helpers::contracts::echo::EXECUTE_REPLY_BASE_ID;
+    //     use crate::*;
+    //     use crate::test_helpers::contracts::echo::EXECUTE_REPLY_BASE_ID;
     //     use secret_utils::parse_instantiate_response_data;
 
     //     #[test]

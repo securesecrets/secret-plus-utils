@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use anyhow::{bail, Result as AnyResult};
 use cosmwasm_std::{Addr, Api, Binary, BlockInfo, CustomQuery, Querier, Storage};
 
-use crate::multi::app::CosmosRouter;
-use crate::multi::AppResponse;
+use crate::app::CosmosRouter;
+use crate::AppResponse;
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 

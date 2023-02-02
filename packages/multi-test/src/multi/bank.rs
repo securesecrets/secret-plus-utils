@@ -2,7 +2,7 @@ use anyhow::{bail, Result as AnyResult};
 use itertools::Itertools;
 use schemars::JsonSchema;
 
-use crate::multi::prefixed_storage::{prefixed, prefixed_read};
+use crate::prefixed_storage::{prefixed, prefixed_read};
 use cosmwasm_std::{
     coin, to_binary, Addr, AllBalanceResponse, Api, BalanceResponse, BankMsg, BankQuery, Binary,
     BlockInfo, Coin, Event, Querier, Storage,
@@ -10,9 +10,9 @@ use cosmwasm_std::{
 use secret_storage_plus::Map;
 use secret_utils::NativeBalance;
 
-use crate::multi::app::CosmosRouter;
-use crate::multi::executor::AppResponse;
-use crate::multi::module::Module;
+use crate::app::CosmosRouter;
+use crate::executor::AppResponse;
+use crate::module::Module;
 
 const BALANCES: Map<&Addr, NativeBalance> = Map::new("balances");
 
@@ -213,7 +213,7 @@ impl Module for BankKeeper {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::multi::app::MockRouter;
+    use crate::app::MockRouter;
     use cosmwasm_std::testing::{mock_env, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{coins, from_slice, Empty, StdError};
 

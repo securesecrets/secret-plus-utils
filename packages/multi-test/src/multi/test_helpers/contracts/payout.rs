@@ -7,8 +7,8 @@ use cosmwasm_std::{
 };
 use secret_storage_plus::Item;
 
-use crate::multi::contracts::{Contract, ContractWrapper};
-use crate::multi::test_helpers::{EmptyMsg, COUNT};
+use crate::contracts::{Contract, ContractWrapper};
+use crate::test_helpers::{EmptyMsg, COUNT};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct InstantiateMessage {

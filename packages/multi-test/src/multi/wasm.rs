@@ -2,9 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Deref;
 
-use crate::multi::prefixed_storage::{
-    prefixed, prefixed_read, PrefixedStorage, ReadonlyPrefixedStorage,
-};
+use crate::prefixed_storage::{prefixed, prefixed_read, PrefixedStorage, ReadonlyPrefixedStorage};
 use cosmwasm_std::{
     to_binary,
     Addr,
@@ -44,11 +42,11 @@ use serde::{Deserialize, Serialize};
 
 use secret_storage_plus::Map;
 
-use crate::multi::app::{CosmosRouter, RouterQuerier};
-use crate::multi::contracts::{gen_test_hash, Contract};
-use crate::multi::error::Error;
-use crate::multi::executor::AppResponse;
-use crate::multi::transactions::transactional;
+use crate::app::{CosmosRouter, RouterQuerier};
+use crate::contracts::{gen_test_hash, Contract};
+use crate::error::Error;
+use crate::executor::AppResponse;
+use crate::transactions::transactional;
 use cosmwasm_std::testing::mock_wasmd_attr;
 
 use anyhow::{bail, Context, Result as AnyResult};
@@ -959,9 +957,9 @@ fn execute_response(data: Option<Binary>) -> Option<Binary> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::multi::test_helpers::contracts::{error, payout};
-    use crate::multi::test_helpers::mocks::mock_router;
-    use crate::multi::transactions::StorageTransaction;
+    use crate::test_helpers::contracts::{error, payout};
+    use crate::test_helpers::mocks::mock_router;
+    use crate::transactions::StorageTransaction;
     use cosmwasm_std::testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage};
     use cosmwasm_std::{coin, from_slice, to_vec, BankMsg, Coin, CosmosMsg, Empty, StdError};
 
@@ -1053,7 +1051,7 @@ mod test {
 
         // Default error message from router when not found
         assert_eq!(
-            StdError::not_found("secret_multi_test::wasm::ContractData"),
+            StdError::not_found("secret_multi_test::multi::wasm::ContractData"),
             err.downcast().unwrap()
         );
     }

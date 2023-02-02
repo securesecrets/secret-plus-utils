@@ -3,7 +3,7 @@ use std::fmt;
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError};
 use schemars::JsonSchema;
 
-use crate::multi::{test_helpers::EmptyMsg, Contract, ContractWrapper};
+use crate::{test_helpers::EmptyMsg, Contract, ContractWrapper};
 
 fn instantiate_err(
     _deps: DepsMut,
