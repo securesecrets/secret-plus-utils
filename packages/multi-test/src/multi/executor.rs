@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use anyhow::Result as AnyResult;
 
-use crate::contracts::ContractInstantiationInfo;
+use crate::{contracts::ContractInstantiationInfo, wasm::CONTRACT_ATTR};
 
 #[derive(Default, Clone, Debug)]
 pub struct AppResponse {
@@ -93,11 +93,22 @@ where
             label: label.into(),
         };
         let res = self.execute(sender, msg.into())?;
-        let data = parse_instantiate_response_data(res.data.unwrap_or_default().as_slice())?;
-        Ok(ContractInfo {
-            address: Addr::unchecked(data.contract_address),
-            code_hash: contract_info.code_hash,
-        })
+        for e in res.events {
+            if e.ty == "instantiate" {
+                let addr = e
+                    .attributes
+                    .iter()
+                    .find(|a| a.key == CONTRACT_ATTR)
+                    .expect("instantiate event must have contract_address")
+                    .value
+                    .clone();
+                return Ok(ContractInfo {
+                    address: Addr::unchecked(addr),
+                    code_hash: contract_info.code_hash,
+                });
+            }
+        }
+        Err(anyhow::Error::msg("No instantiate event returned"))
     }
 
     /// Execute a contract and process all returned messages.

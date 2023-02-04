@@ -63,7 +63,7 @@ const SAFE_NANOID_LENGTH: usize = 40;
 const CONTRACTS: Map<&Addr, ContractData> = Map::new("contracts");
 
 pub const NAMESPACE_WASM: &[u8] = b"wasm";
-const CONTRACT_ATTR: &str = "_contract_addr";
+pub const CONTRACT_ATTR: &str = "_contract_addr";
 
 #[derive(Clone, std::fmt::Debug, PartialEq, JsonSchema)]
 pub struct WasmSudo {
