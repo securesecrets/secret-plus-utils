@@ -430,12 +430,7 @@ where
                 let (res, msgs) = self.build_app_response(&contract_addr, custom_event, res);
                 let mut res =
                     self.process_response(api, router, storage, block, contract_addr, res, msgs)?;
-                match res.data {
-                    Some(_) => {}
-                    None => {
-                        res.data = execute_response(res.data);
-                    }
-                }
+                res.data = execute_response(res.data);
                 Ok(res)
             }
             WasmMsg::Instantiate {
