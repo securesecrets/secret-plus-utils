@@ -109,6 +109,11 @@ where
             }
         }
         Err(anyhow::Error::msg("No instantiate event returned"))
+        // let data = parse_instantiate_response_data(res.data.unwrap_or_default().as_slice())?;
+        // Ok(ContractInfo {
+        //     address: Addr::unchecked(data.contract_address),
+        //     code_hash: contract_info.code_hash,
+        // })
     }
 
     /// Execute a contract and process all returned messages.
