@@ -439,6 +439,7 @@ where
                 msg,
                 funds,
                 label,
+                admin,
             } => {
                 if label.is_empty() {
                     bail!("Label is required on all contracts");
@@ -832,7 +833,10 @@ where
                 address: address.into(),
                 code_hash,
             },
-            transaction: Some(TransactionInfo { index: 0 }),
+            transaction: Some(TransactionInfo {
+                index: 0,
+                hash: "".to_string(),
+            }),
         }
     }
 
