@@ -81,7 +81,7 @@ where
         init_msg: &T,
         send_funds: &[Coin],
         label: U,
-        _admin: Option<String>,
+        admin: Option<String>,
     ) -> AnyResult<ContractInfo> {
         // instantiate contract
         let init_msg = to_binary(init_msg)?;
@@ -91,6 +91,7 @@ where
             msg: init_msg,
             funds: send_funds.to_vec(),
             label: label.into(),
+            admin,
         };
         let res = self.execute(sender, msg.into())?;
         for e in res.events {
