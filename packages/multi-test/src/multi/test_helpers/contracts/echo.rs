@@ -96,29 +96,13 @@ where
 {
     let res = Response::new();
     if let Reply {
-        id,
+        id: _,
         result: SubMsgResult::Ok(SubMsgResponse {
             data: Some(data), ..
         }),
     } = msg
     {
-        // We parse out the WasmMsg::Execute wrapper...
-        // TODO: Handle all of Execute, Instantiate, and BankMsg replies differently.
-        let parsed_data = if id < EXECUTE_REPLY_BASE_ID {
-            parse_instantiate_response_data(data.as_slice())
-                .map_err(|e| StdError::generic_err(e.to_string()))?
-                .data
-        } else {
-            parse_execute_response_data(data.as_slice())
-                .map_err(|e| StdError::generic_err(e.to_string()))?
-                .data
-        };
-
-        if let Some(data) = parsed_data {
-            Ok(res.set_data(data))
-        } else {
-            Ok(res)
-        }
+        Ok(res.set_data(data))
     } else {
         Ok(res)
     }
